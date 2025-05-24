@@ -27,8 +27,12 @@ export default function DowodOCR() {
 
       const result = await res.json();
       setData(result.extracted);
-    } catch (err: any) {
-      setError(err?.message || "Nie udało się przetworzyć zdjęcia.");
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("Nie udało się przetworzyć zdjęcia.");
+      }
     } finally {
       setLoading(false);
     }
