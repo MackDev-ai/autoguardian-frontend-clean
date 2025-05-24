@@ -60,12 +60,40 @@ export default function DowodOCR() {
       {error && <p className="text-red-500 mt-4">{error}</p>}
 
       {data && (
-        <div className="mt-6 bg-gray-100 p-4 rounded">
-          <h2 className="text-xl font-semibold mb-2">📄 Odczytane dane:</h2>
-          <p><strong>VIN:</strong> {data.vin}</p>
-          <p><strong>Rejestracja:</strong> {data.rejestracja}</p>
-        </div>
-      )}
+  <div className="mt-6 bg-gray-100 p-4 rounded">
+    <h2 className="text-xl font-semibold mb-4">📄 Odczytane dane (edytowalne):</h2>
+
+    <div className="mb-3">
+      <label className="block font-medium mb-1">VIN:</label>
+      <input
+        type="text"
+        value={data.vin || ""}
+        onChange={(e) => setData({ ...data, vin: e.target.value })}
+        className="w-full border px-3 py-2 rounded"
+      />
+    </div>
+
+    <div className="mb-3">
+      <label className="block font-medium mb-1">Rejestracja:</label>
+      <input
+        type="text"
+        value={data.rejestracja || ""}
+        onChange={(e) => setData({ ...data, rejestracja: e.target.value })}
+        className="w-full border px-3 py-2 rounded"
+      />
+    </div>
+
+    {/* 🔒 Na przyszłość – przycisk zapisania */}
+    {/* 
+    <button
+      onClick={() => saveToDatabase(data)}
+      className="mt-2 bg-green-600 text-white px-4 py-2 rounded"
+    >
+      Zapisz dane
+    </button> 
+    */}
+  </div>
+)}
     </main>
   );
 }
