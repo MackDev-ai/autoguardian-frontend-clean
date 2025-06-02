@@ -70,27 +70,27 @@ export default function DodajAuto() {
       <div className="grid gap-4">
         <label>
           VIN:
-          <input name="vin" value={form.vin} onChange={handleChange} className="w-full border px-2 py-1" />
+          <input name="vin" value={form.vin} onChange={handleChange} className="w-full border px-2 py-1 bg-white text-black" />
         </label>
         <label>
           Rejestracja:
-          <input name="rejestracja" value={form.rejestracja} onChange={handleChange} className="w-full border px-2 py-1" />
+          <input name="rejestracja" value={form.rejestracja} onChange={handleChange} className="w-full border px-2 py-1 bg-white text-black" />
         </label>
         <label>
           Marka:
-          <input name="marka" value={form.marka} onChange={handleChange} className="w-full border px-2 py-1" />
+          <input name="marka" value={form.marka} onChange={handleChange} className="w-full border px-2 py-1 bg-white text-black" />
         </label>
         <label>
           Model:
-          <input name="model" value={form.model} onChange={handleChange} className="w-full border px-2 py-1" />
+          <input name="model" value={form.model} onChange={handleChange} className="w-full border px-2 py-1 bg-white text-black" />
         </label>
         <label>
           Rok:
-          <input name="rok" value={form.rok} onChange={handleChange} className="w-full border px-2 py-1" />
+          <input name="rok" value={form.rok} onChange={handleChange} className="w-full border px-2 py-1 bg-white text-black" />
         </label>
         <label>
           Pojemność (cm³):
-          <input name="pojemnosc" value={form.pojemnosc} onChange={handleChange} className="w-full border px-2 py-1" />
+          <input name="pojemnosc" value={form.pojemnosc} onChange={handleChange} className="w-full border px-2 py-1 bg-white text-black" />
         </label>
 
         <div>
