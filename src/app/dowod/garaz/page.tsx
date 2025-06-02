@@ -1,55 +1,58 @@
 "use client";
 
-
 import { useEffect, useState } from "react";
 import Link from "next/link";
 
+type Auto = {
+  vin: string;
+  rejestracja: string;
+};
+
 export default function Garaz() {
-  const [auta, setAuta] = useState<{ vin: string; rejestracja: string }[]>([]);
+  const [auta, setAuta] = useState<Auto[]>([]);
 
   useEffect(() => {
-    const zapisane = JSON.parse(localStorage.getItem("auta") || "[]");
-    setAuta(zapisane);
+    const saved = localStorage.getItem("auta");
+    if (saved) {
+      setAuta(JSON.parse(saved));
+    }
   }, []);
 
-  const handleDelete = (index: number) => {
+  const usunAuto = (index: number) => {
     const noweAuta = [...auta];
     noweAuta.splice(index, 1);
-    localStorage.setItem("auta", JSON.stringify(noweAuta));
     setAuta(noweAuta);
+    localStorage.setItem("auta", JSON.stringify(noweAuta));
   };
 
   return (
-    <main className="p-6 max-w-3xl mx-auto">
-      <h1 className="text-2xl font-bold mb-4">🚗 Garaż</h1>
+    <main className="p-6 max-w-xl mx-auto">
+      <h1 className="text-2xl font-bold mb-4">Garaż</h1>
 
       {auta.length === 0 ? (
-        <p>Brak zapisanych pojazdów.</p>
+        <p className="mb-4">Brak zapisanych aut.</p>
       ) : (
-        <div className="grid gap-4">
-          {auta.map((auto, i) => (
-            <div key={i} className="border p-4 rounded bg-gray-100">
+        <ul className="space-y-4">
+          {auta.map((auto, index) => (
+            <li key={index} className="bg-white rounded p-4 shadow">
               <p><strong>VIN:</strong> {auto.vin}</p>
               <p><strong>Rejestracja:</strong> {auto.rejestracja}</p>
-              <p><strong>Marka:</strong> {auto.marka}</p>
-              <p><strong>Model:</strong> {auto.model}</p>
-              <p><strong>Rok:</strong> {auto.rok}</p>
-              <p><strong>Pojemność:</strong> {auto.pojemnosc} cm³</p>
               <button
-                onClick={() => handleDelete(i)}
-                className="mt-2 bg-red-600 text-white px-3 py-1 rounded"
+                onClick={() => usunAuto(index)}
+                className="mt-2 text-sm text-red-600 hover:underline"
               >
                 Usuń
               </button>
-            </div>
+            </li>
           ))}
-        </div>
+        </ul>
       )}
 
-      <Link href="/dodaj-auto">
-        <button className="mt-6 bg-blue-600 text-white px-4 py-2 rounded">
-          ➕ Dodaj kolejne auto
-        </button>
+      <Link
+        href="/dowod/dodaj-auto"
+        className="inline-block mt-6 bg-blue-600 text-white px-4 py-2 rounded"
+      >
+        Dodaj nowe auto
       </Link>
     </main>
   );
