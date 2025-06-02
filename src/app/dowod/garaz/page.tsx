@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 
 export default function Garaz() {
-  const [auta, setAuta] = useState<any[]>([]);
+  const [auta, setAuta] = useState<{ vin: string; rejestracja: string }[]>([]);
 
   useEffect(() => {
     const zapisane = JSON.parse(localStorage.getItem("auta") || "[]");

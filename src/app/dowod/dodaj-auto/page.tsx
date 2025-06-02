@@ -45,8 +45,12 @@ export default function DodajAuto() {
         vin: result.extracted?.vin || "",
         rejestracja: result.extracted?.rejestracja || "",
       });
-    } catch (err: any) {
-      setError(err.message || "Nie udało się przetworzyć zdjęcia.");
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("Nie udało się przetworzyć zdjęcia.");
+      }
     } finally {
       setLoading(false);
     }
