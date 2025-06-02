@@ -9,14 +9,14 @@ export default function Home() {
 
       <div className="flex flex-col gap-4 w-full max-w-sm">
         <Link
-          href="/dodaj-auto"
+          href="dowod/dodaj-auto"
           className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded text-center"
         >
           ➕ Dodaj auto
         </Link>
 
         <Link
-          href="/garaz"
+          href="dowod/garaz"
           className="bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded text-center"
         >
           📋 Zobacz garaż
