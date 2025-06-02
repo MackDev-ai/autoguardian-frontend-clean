@@ -54,6 +54,9 @@ export default function Garaz() {
       >
         Dodaj nowe auto
       </Link>
+      <Link href="/" className="text-blue-400 hover:underline mt-6 block text-sm">
+        ← Wróć na stronę główną
+      </Link>
     </main>
   );
 }
