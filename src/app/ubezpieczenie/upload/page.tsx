@@ -66,9 +66,15 @@ export default function UploadInsurancePDF() {
       )}
 
       {ocrText && (
-        <div className="mt-6">
-          <h2 className="text-lg font-medium">Zawartość PDF (OCR):</h2>
-          <pre className="text-xs bg-gray-50 p-2 rounded whitespace-pre-wrap">{ocrText}</pre>
+        <div 
+          className="
+            mt-6 rounded p-4 overflow-auto
+            bg-gray-100  text-gray-900   /* light-mode  *
+            dark:bg-gray-800 dark:text-gray-100 /* dark-mode */
+          "
+        >
+          <h2 className="text-xl font-semibold mb-2">Zawartość PDF (OCR):</h2>
+          <pre className="whitespace-pre-wrap text-sm leading-relaxed">{ocrText}</pre>
         </div>
       )}
     </main>
