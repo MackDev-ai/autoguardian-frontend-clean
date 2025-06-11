@@ -21,6 +21,12 @@ export default function Home() {
         >
           📋 Zobacz garaż
         </Link>
+
+        
+        <Link href="/ubezpieczenie/upload" className="text-blue-600 underline">
+          Dodaj polisę ubezpieczeniową
+        </Link>
+
       </div>
     </main>
   );
