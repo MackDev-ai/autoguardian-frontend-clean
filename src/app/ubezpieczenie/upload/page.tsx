@@ -51,9 +51,17 @@ export default function UploadInsurancePDF() {
       </button>
 
       {extracted && (
-        <div className="mt-6 bg-gray-100 p-4 rounded">
+        <div
+          className="
+            mt-6 rounded p-4 overflow-auto
+            bg-gray-100  text-gray-900   /* light-mode  */
+            dark:bg-gray-800 dark:text-gray-100 /* dark-mode */
+          "
+        >
           <h2 className="text-xl font-semibold mb-2">Dane z polisy:</h2>
-          <pre className="text-sm whitespace-pre-wrap">{JSON.stringify(extracted, null, 2)}</pre>
+          <pre className="whitespace-pre-wrap text-sm leading-relaxed">
+            {JSON.stringify(extracted, null, 2)}
+          </pre>
         </div>
       )}
 

@@ -23,8 +23,15 @@ export default function Home() {
         </Link>
 
         
-        <Link href="/ubezpieczenie/upload" className="text-blue-600 underline">
-          Dodaj polisę ubezpieczeniową
+        <Link 
+          href="/ubezpieczenie/upload" 
+          className="
+            mt-4 inline-flex items-center justify-center gap-2
+            rounded bg-purple-600 px-4 py-2 font-medium text-white
+            hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-400
+           "
+        > 
+          📑 Dodaj polisę
         </Link>
 
       </div>
