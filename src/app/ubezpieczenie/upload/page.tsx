@@ -6,7 +6,7 @@ export default function UploadInsurancePDF() {
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [ocrText, setOcrText] = useState("");
-  const [extracted, setExtracted] = useState<any>(null);
+  const [extracted, setExtracted] = useState<Record<string, unknown> | null>(null);
 
   const handleUpload = async () => {
     if (!file) return;
