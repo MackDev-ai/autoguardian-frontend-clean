@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
 type ExtractedData = {
   numerPolisy: string;
@@ -54,6 +55,9 @@ export default function ListaPolis() {
           </div>
         ))
       )}
+      <Link href="/" className="text-blue-400 hover:underline mt-6 block text-sm">
+        ← Wróć na stronę główną
+      </Link>
     </main>
   );
 }
