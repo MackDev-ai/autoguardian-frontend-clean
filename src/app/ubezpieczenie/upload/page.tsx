@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 
 type ExtractedData = {
   numerPolisy: string;
@@ -113,6 +114,10 @@ export default function UploadInsurancePDF() {
           <pre className="whitespace-pre-wrap text-sm leading-relaxed">{ocrText}</pre>
         </div>
       )}
+
+      <Link href="/" className="text-blue-400 hover:underline mt-6 block text-sm">
+        ← Wróć na stronę główną
+      </Link>
     </main>
   );
 }
