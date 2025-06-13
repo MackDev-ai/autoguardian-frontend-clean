@@ -3,27 +3,54 @@
 import { useState } from "react";
 import Link from "next/link";
 
-type ExtractedData = {
+type Polisa = {
   numerPolisy: string;
-  ubezpieczyciel: string;
-  ubezpieczony: string;
-  pojazd: string;
-  zakres: string[];
+  numerSprawy: string;
+  dataZawarcia: string;
   okres: {
     od: string;
     do: string;
   };
-  sumaUbezpieczenia: string;
-  skladka: string;
-  udzialWlasny: string;
-  amortyzacja: string;
+  ubezpieczyciel: string;
+  ubezpieczajacy: {
+    imieNazwisko: string;
+    nip: string;
+    regon: string;
+    adres: string;
+    telefon: string;
+  };
+  pojazd: {
+    marka: string;
+    model: string;
+    vin: string;
+    nrRejestracyjny: string;
+    pojemnosc: string;
+    rokProdukcji: string;
+    pierwszaRejestracja: string;
+  };
+  zakres: {
+    oc: { sumaOsoba: string; sumaMienie: string; skladka: string };
+    ac: { suma: string; skladka: string };
+    nnw: { suma: string; skladka: string };
+    assistanceSos: { suma: string; skladka: string };
+    assistancePrawny: { suma: string; skladka: string };
+  };
+  skladkaCalkowita: string;
+  rataDo: string;
+  kontoPlatnosci: string;
+  kontakty: {
+    szkody: string;
+    assistance: string;
+    medyczne: string;
+    prawne: string;
+  };
 };
 
 export default function UploadInsurancePDF() {
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [ocrText, setOcrText] = useState("");
-  const [extracted, setExtracted] = useState<ExtractedData | null>(null);
+  const [extracted, setExtracted] = useState<Polisa | null>(null);
 
   const handleUpload = async () => {
     if (!file) return;
@@ -41,7 +68,7 @@ export default function UploadInsurancePDF() {
       const result = await response.json();
       setOcrText(result.ocr_text);
       setExtracted(result.extracted);
-      // 🆕 Zapisz dane do backendu
+
       await fetch("https://autoguardian-backend.onrender.com/zapisz-polise", {
         method: "POST",
         headers: {
@@ -49,9 +76,6 @@ export default function UploadInsurancePDF() {
         },
         body: JSON.stringify(result.extracted),
       });
-
-
-
     } catch (error) {
       console.error("Błąd podczas przesyłania pliku:", error);
     }
@@ -81,35 +105,24 @@ export default function UploadInsurancePDF() {
       {extracted && (
         <div className="mt-6 p-4 rounded bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100">
           <h2 className="text-xl font-semibold mb-2">Dane z polisy:</h2>
-
           <ul className="space-y-2 text-sm">
-            <li><strong>📄 Numer polisy:</strong> {extracted.numerPolisy}</li>
-            <li><strong>🏢 Ubezpieczyciel:</strong> {extracted.ubezpieczyciel}</li>
-            <li><strong>👤 Ubezpieczony:</strong> {extracted.ubezpieczony}</li>
-            <li><strong>🚗 Pojazd:</strong> {extracted.pojazd}</li>
-            <li>
-              <strong>📅 Okres:</strong> od <em>{extracted.okres?.od}</em> do <em>{extracted.okres?.do}</em>
-            </li>
-            <li><strong>🛡️ Zakres:</strong> {(extracted.zakres || []).join(", ")}</li>
-            <li>
-              <strong>💰 Składka:</strong>
-              <pre className="whitespace-pre-wrap">{extracted.skladka}</pre>
-            </li>
-            <li><strong>💸 Suma ubezpieczenia:</strong> {extracted.sumaUbezpieczenia}</li>
-            <li><strong>📉 Udział własny:</strong> {extracted.udzialWlasny}</li>
-            <li><strong>🧾 Amortyzacja:</strong> {extracted.amortyzacja}</li>
+            <li><strong>Numer polisy:</strong> {extracted.numerPolisy}</li>
+            <li><strong>Data zawarcia:</strong> {extracted.dataZawarcia}</li>
+            <li><strong>Okres:</strong> {extracted.okres.od} - {extracted.okres.do}</li>
+            <li><strong>Ubezpieczony:</strong> {extracted.ubezpieczajacy.imieNazwisko}</li>
+            <li><strong>Marka pojazdu:</strong> {extracted.pojazd.marka}</li>
+            <li><strong>Model:</strong> {extracted.pojazd.model}</li>
+            <li><strong>VIN:</strong> {extracted.pojazd.vin}</li>
+            <li><strong>OC:</strong> {extracted.zakres.oc.skladka} PLN ({extracted.zakres.oc.sumaOsoba} / {extracted.zakres.oc.sumaMienie})</li>
+            <li><strong>AC:</strong> {extracted.zakres.ac.skladka} PLN (suma: {extracted.zakres.ac.suma})</li>
+            <li><strong>Składka całkowita:</strong> {extracted.skladkaCalkowita} PLN</li>
+            <li><strong>Płatność do:</strong> {extracted.rataDo}</li>
           </ul>
         </div>
       )}
 
       {ocrText && (
-        <div
-          className="
-            mt-6 rounded p-4 overflow-auto
-            bg-gray-100 text-gray-900
-            dark:bg-gray-800 dark:text-gray-100
-          "
-        >
+        <div className="mt-6 rounded p-4 overflow-auto bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-gray-100">
           <h2 className="text-xl font-semibold mb-2">Zawartość PDF (OCR):</h2>
           <pre className="whitespace-pre-wrap text-sm leading-relaxed">{ocrText}</pre>
         </div>
