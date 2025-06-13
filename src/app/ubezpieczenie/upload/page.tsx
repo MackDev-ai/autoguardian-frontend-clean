@@ -69,13 +69,15 @@ export default function UploadInsurancePDF() {
       setOcrText(result.ocr_text);
       setExtracted(result.extracted);
 
-      await fetch("https://autoguardian-backend.onrender.com/zapisz-polise", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(result.extracted),
-      });
+      try {
+        await fetch("https://autoguardian-backend.onrender.com/zapisz-polise", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(result.extracted),
+        });
+    } catch (err) {
+      console.warn("Błąd zapisu polisy:", err);
+    }
     } catch (error) {
       console.error("Błąd podczas przesyłania pliku:", error);
     }
