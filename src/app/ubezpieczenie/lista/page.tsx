@@ -48,7 +48,7 @@ export default function ListaPolis() {
 
   useEffect(() => {
     const fetchData = async () => {
-      const res = await fetch("https://autoguardian-backend.onrender.com/pobierz-polisy");
+      const res = await fetch("https://api.autoguardian.pl/pobierz-polisy");
       const data = await res.json();
       setPolisy(Array.isArray(data) ? data : []);
     };

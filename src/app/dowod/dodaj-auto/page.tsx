@@ -33,7 +33,7 @@ export default function DodajAuto() {
     formData.append("file", file);
 
     try {
-      const res = await fetch("https://autoguardian-backend.onrender.com/upload", {
+      const res = await fetch("https://api.autoguardian.pl/upload", {
         method: "POST",
         body: formData,
       });

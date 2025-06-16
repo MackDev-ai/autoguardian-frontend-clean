@@ -60,7 +60,7 @@ export default function UploadInsurancePDF() {
     formData.append("file", file);
 
     try {
-      const response = await fetch("https://autoguardian-backend.onrender.com/upload-pdf", {
+      const response = await fetch("https://api.autoguardian.pl/upload-pdf", {
         method: "POST",
         body: formData,
       });
@@ -70,7 +70,7 @@ export default function UploadInsurancePDF() {
       setExtracted(result.extracted);
 
       try {
-        await fetch("https://autoguardian-backend.onrender.com/zapisz-polise", {
+        await fetch("https://api.autoguardian.pl/zapisz-polise", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(result.extracted),
