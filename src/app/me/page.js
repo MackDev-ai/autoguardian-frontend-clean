@@ -1,4 +1,5 @@
 // pages/me.js
+"use client";
 
 import { useEffect, useState } from 'react';
 import { getToken } from '../../utils/auth';

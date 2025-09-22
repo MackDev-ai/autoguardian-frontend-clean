@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { saveToken } from '../../utils/auth';
+import { saveToken } from '../../../utils/auth';
 
 export default function Login() {
   const [email, setEmail] = useState('');
