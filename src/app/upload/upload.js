@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { getToken } from '../utils/auth';
+import { getToken } from '../../utils/auth';
 
 export default function UploadPDF() {
   const [file, setFile] = useState(null);

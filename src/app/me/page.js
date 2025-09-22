@@ -1,7 +1,7 @@
 // pages/me.js
 
 import { useEffect, useState } from 'react';
-import { getToken } from '../utils/auth';
+import { getToken } from '../../utils/auth';
 
 export default function Me() {
   const [user, setUser] = useState(null);
