@@ -1,38 +1,45 @@
-// pages/me.js
 "use client";
 
-import { useEffect, useState } from 'react';
-import { getToken } from '../../../utils/auth';
+import { useEffect, useState } from "react";
+import Cookies from "js-cookie";
 
 export default function Me() {
   const [user, setUser] = useState(null);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    async function fetchMe() {
-      const token = getToken();
-      const res = await fetch('https://api.autoguardian.pl/me', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      const data = await res.json();
-      if (res.ok) {
-        setUser(data);
-      } else {
-        alert('Błąd: ' + data.detail);
-      }
+    const token = Cookies.get("token");
+    if (!token) {
+      setError("Brak tokena – zaloguj się ponownie");
+      return;
     }
 
-    fetchMe();
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/me`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.detail) {
+          setError(data.detail);
+        } else {
+          setUser(data);
+        }
+      })
+      .catch(() => setError("Błąd połączenia z API"));
   }, []);
 
-  if (!user) return <p>Ładowanie danych...</p>;
-
   return (
-    <div>
-      <h1>Twój profil</h1>
-      <p>Email: {user.email}</p>
-    </div>
+    <main className="p-6 max-w-md mx-auto">
+      <h1 className="text-2xl font-bold mb-4">Mój profil</h1>
+      {error && <p className="text-red-600">{error}</p>}
+      {user && (
+        <div className="bg-gray-100 p-4 rounded">
+          <p><strong>ID:</strong> {user.id}</p>
+          <p><strong>Email:</strong> {user.email}</p>
+        </div>
+      )}
+    </main>
   );
 }
