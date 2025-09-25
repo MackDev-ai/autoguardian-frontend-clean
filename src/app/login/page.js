@@ -27,7 +27,7 @@ export default function Login() {
         // zapis tokena w cookie (ważne 1 dzień)
         Cookies.set("token", data.access_token, { expires: 1 });
 
-        router.push("/polisy");
+        router.push("/");
       } else {
         setError(data.detail || "Nie udało się zalogować");
       }
