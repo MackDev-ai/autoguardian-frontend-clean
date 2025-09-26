@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Cookies from "js-cookie"; // <- pamiętaj: npm install js-cookie
+import Cookies from "js-cookie"; // npm install js-cookie
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -23,14 +23,16 @@ export default function Login() {
 
       const data = await res.json();
 
-      if (res.ok) {
-        // zapis tokena w cookie (ważne 1 dzień)
-        Cookies.set("token", data.access_token, { expires: 1 });
-
-        router.push("/");
-      } else {
+      if (!res.ok) {
         setError(data.detail || "Nie udało się zalogować");
+        return;
       }
+
+      // zapis tokena w cookie (ważne 1 dzień)
+      Cookies.set("token", data.access_token, { expires: 1 });
+
+      // przekierowanie na stronę główną
+      router.push("/");
     } catch {
       setError("Błąd połączenia z serwerem");
     }
@@ -45,14 +47,16 @@ export default function Login() {
           placeholder="Email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full border px-3 py-2 rounded"
+          required
+          className="w-full border px-3 py-2 rounded text-black"
         />
         <input
           type="password"
           placeholder="Hasło"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="w-full border px-3 py-2 rounded"
+          required
+          className="w-full border px-3 py-2 rounded text-black"
         />
         <button
           type="submit"
@@ -62,6 +66,14 @@ export default function Login() {
         </button>
         {error && <p className="text-red-600 text-sm">{error}</p>}
       </form>
+
+      {/* Link do rejestracji */}
+      <p className="text-sm mt-4 text-center">
+        Nie masz konta?{" "}
+        <a href="/register" className="text-blue-400 hover:underline">
+          Zarejestruj się
+        </a>
+      </p>
     </main>
   );
 }
