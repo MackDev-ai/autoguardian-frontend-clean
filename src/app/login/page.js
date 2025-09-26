@@ -31,7 +31,7 @@ export default function Login() {
       } else {
         setError(data.detail || "Nie udało się zalogować");
       }
-    } catch (err) {
+    } catch {
       setError("Błąd połączenia z serwerem");
     }
   }
