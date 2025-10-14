@@ -1,36 +1,46 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AutoGuardian Platform
 
-## Getting Started
+AutoGuardian to mobilny asystent do zarządzania polisami ubezpieczeniowymi i przeglądami pojazdów. Repozytorium zawiera:
 
-First, run the development server:
+- **mobile/** – aplikację Flutter (Riverpod + Material 3) z ekranami onboarding, dashboard, pojazdy, polisy oraz osią czasu zdarzeń.
+- **backend/** – usługę FastAPI z bazą PostgreSQL (SQLAlchemy) oraz API do obsługi użytkowników, pojazdów, polis, zdarzeń, przypomnień, ofert i uploadu dokumentów.
+- **src/** – dotychczasową aplikację Next.js (zostawiona do dalszego wykorzystania jako panel WWW).
+
+## Uruchamianie backendu (MVP)
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cd backend
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+export SECRET_KEY="dev"
+export DATABASE_URL="sqlite:///./dev.db"
+uvicorn app.main:app --reload
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Swagger dostępny pod `http://localhost:8000/api/v1/docs`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Uruchamianie aplikacji mobilnej
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+cd mobile
+flutter pub get
+flutter test
+flutter run
+```
 
-## Learn More
+## Struktura API (wybrane endpointy)
 
-To learn more about Next.js, take a look at the following resources:
+- `POST /api/v1/auth/register` – rejestracja użytkownika.
+- `POST /api/v1/auth/login` – logowanie, zwraca access/refresh tokeny.
+- `GET /api/v1/vehicles` – lista pojazdów użytkownika.
+- `POST /api/v1/policies` – dodanie polisy (ręcznie lub z danych OCR).
+- `POST /api/v1/upload` – wstępna ekstrakcja danych z pliku PDF/JPG.
+- `POST /api/v1/offers/quote` – zwraca 3 przykładowe oferty wraz z wynikiem scoringu.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Szczegóły modeli znajdują się w katalogu `backend/app/schemas`.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Testy
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Backend: `cd backend && pytest`
+- Mobile: `cd mobile && flutter test`
