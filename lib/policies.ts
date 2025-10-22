@@ -23,10 +23,15 @@ function authHeader(token?: string | null): Record<string, string> {
 /**
  * Pobierz listę polis.
  */
+export type PolicyListResponse =
+  | Policy[]
+  | { items: Policy[] }
+  | (Record<string, unknown> & { detail?: string });
+
 export async function listPolicies(
   token?: string | null
-): Promise<TryFetchResult<Policy[]>> {
-  return tryFetch<Policy[]>({
+): Promise<TryFetchResult<PolicyListResponse>> {
+  return tryFetch<PolicyListResponse>({
     paths: ENDPOINTS.polisyList, // ['/pobierz-polisy', '/polisy']
     headers: {
       ...authHeader(token),

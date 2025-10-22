@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useAuth, authHeaders } from "../../context/AuthProvider";
 import { ENDPOINTS, tryFetch } from "../../lib/api";
 
@@ -10,6 +10,7 @@ import {
   createVehicle,
   deleteVehicle,
   type Vehicle,
+  type CreateVehicleInput,
 } from "../../lib/vehicles";
 
 import {
@@ -29,8 +30,143 @@ import {
 /* ==== UI (tabs) ==== */
 type TabKey = "auth" | "profile" | "garage" | "polisy" | "upload";
 
+type MeData = Record<string, unknown>;
+
+type GarageVehicle = Vehicle & {
+  brand?: string;
+  reg?: string;
+  inspection?: string;
+  ocUntil?: string;
+  odo?: number | string;
+};
+
+type GarageVehicleForm = Partial<GarageVehicle>;
+
+type ISODate = string;
+type PolicyLoose = Policy & {
+  from?: ISODate;
+  to?: ISODate;
+};
+
+interface PolicyListEnvelope {
+  items?: PolicyLoose[];
+}
+
+interface MappedPolicyPreview {
+  number: string;
+  insurer: string;
+  premium: string;
+  valid_from: string;
+  valid_to: string;
+  deductible: string;
+  coverage: string;
+}
+
+type OcrExtract = PolicyLoose & {
+  policy_number?: string;
+  number?: string;
+  insurer?: string;
+  premium?: number | string;
+  valid_from?: string;
+  valid_to?: string;
+  deductible?: number | string;
+  coverage?: string[] | string;
+  detail?: string;
+  [key: string]: unknown;
+};
+
+type UploadResponse = OcrExtract | { extracted: OcrExtract; detail?: string };
+
+type LoginResponse = { access_token?: string; detail?: string };
+type RegisterResponse = { detail?: string };
+type SavePolicyResponse = Record<string, unknown> & { detail?: string };
+
+const EMPTY_MAPPED_POLICY: MappedPolicyPreview = {
+  number: "",
+  insurer: "",
+  premium: "",
+  valid_from: "",
+  valid_to: "",
+  deductible: "",
+  coverage: "",
+};
+
+function readLocalArray<T>(key: string): T[] {
+  const raw = localStorage.getItem(key);
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    return Array.isArray(parsed) ? (parsed as T[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function detailFrom(payload: unknown): string | undefined {
+  if (payload && typeof payload === "object" && "detail" in payload) {
+    const value = (payload as { detail?: unknown }).detail;
+    return typeof value === "string" ? value : undefined;
+  }
+  return undefined;
+}
+
+function toCreateVehicleInput(form: GarageVehicleForm): CreateVehicleInput {
+  const base = {
+    ...form,
+    make: form.brand ?? form.make,
+    plate: form.reg ?? form.plate,
+  };
+  const { id, created_at, updated_at, ...rest } = base as CreateVehicleInput & {
+    id?: unknown;
+    created_at?: unknown;
+    updated_at?: unknown;
+  };
+  void id;
+  void created_at;
+  void updated_at;
+  return rest;
+}
+
+function policyPeriod(policy: PolicyLoose): { from?: string; to?: string } {
+  return {
+    from: policy.valid_from ?? policy.from,
+    to: policy.valid_to ?? policy.to,
+  };
+}
+
+function normalizePolicy(policy: PolicyLoose): PolicyLoose {
+  const { from, to } = policyPeriod(policy);
+  return {
+    ...policy,
+    valid_from: from,
+    valid_to: to,
+  };
+}
+
+function extractPolicies(payload: unknown): PolicyLoose[] {
+  if (Array.isArray(payload)) {
+    return payload.filter((item): item is PolicyLoose => typeof item === "object" && item !== null).map(normalizePolicy);
+  }
+  if (payload && typeof payload === "object") {
+    const { items } = payload as PolicyListEnvelope;
+    if (Array.isArray(items)) {
+      return items
+        .filter((item): item is PolicyLoose => typeof item === "object" && item !== null)
+        .map(normalizePolicy);
+    }
+  }
+  return [];
+}
+
+function formatPolicyPeriod(policy: PolicyLoose): string {
+  const { from, to } = policyPeriod(policy);
+  const safeFrom = from && from.length > 0 ? from : "—";
+  const safeTo = to && to.length > 0 ? to : "—";
+  return `${safeFrom} → ${safeTo}`;
+}
+
 export default function Page() {
-  const { token, setToken, isAuthed } = useAuth();
+  const { setToken, isAuthed } = useAuth();
   const [tab, setTab] = useState<TabKey>("auth");
 
   return (
@@ -83,9 +219,9 @@ function AuthSection({ onSuccess }: { onSuccess?: () => void }) {
   const [loginMsg,setLoginMsg]=useState("");
   const [regMsg,setRegMsg]=useState("");
 
-  async function handleLogin(){
+  async function handleLogin(): Promise<void> {
     setLoginMsg("Logowanie...");
-    const res = await tryFetch({
+    const res = await tryFetch<LoginResponse>({
       paths: ENDPOINTS.login,
       method:"POST",
       headers:{ "Content-Type":"application/json" },
@@ -96,20 +232,20 @@ function AuthSection({ onSuccess }: { onSuccess?: () => void }) {
       setLoginMsg("✅ Zalogowano.");
       onSuccess?.();
     } else {
-      setLoginMsg("❌ " + (res.data?.detail || "Nie udało się zalogować"));
+      setLoginMsg("❌ " + (detailFrom(res.data) || "Nie udało się zalogować"));
     }
   }
 
-  async function handleRegister(){
+  async function handleRegister(): Promise<void> {
     setRegMsg("Rejestruję...");
-    const res = await tryFetch({
+    const res = await tryFetch<RegisterResponse>({
       paths: ENDPOINTS.register,
       method:"POST",
       headers:{ "Content-Type":"application/json" },
       body: JSON.stringify({ email: regEmail, password: regPass })
     });
     if (res.ok) setRegMsg("✅ Rejestracja OK — możesz się zalogować.");
-    else setRegMsg("❌ " + (res.data?.detail || "Błąd rejestracji"));
+    else setRegMsg("❌ " + (detailFrom(res.data) || "Błąd rejestracji"));
   }
 
   return (
@@ -153,19 +289,25 @@ function AuthSection({ onSuccess }: { onSuccess?: () => void }) {
 function ProfileSection() {
   const { token } = useAuth();
   const [msg,setMsg]=useState("");
-  const [data,setData]=useState<any|null>(null);
+  const [data,setData]=useState<MeData|null>(null);
 
-  async function loadMe(){
+  const formatValue = (value: unknown) => (
+    value !== null && typeof value === "object"
+      ? JSON.stringify(value)
+      : String(value ?? "")
+  );
+
+  async function loadMe(): Promise<void> {
     setMsg("Pobieram...");
-    const res = await tryFetch({
+    const res = await tryFetch<MeData>({
       paths: ENDPOINTS.me,
-      headers: { ...authHeaders(token) }
+      headers: authHeaders(token)
     });
     if (res.ok){
       setData(res.data);
       setMsg("Gotowe.");
     } else {
-      setMsg("❌ "+(res.data?.detail||"Błąd"));
+      setMsg("❌ "+(detailFrom(res.data)||"Błąd"));
     }
   }
 
@@ -182,7 +324,7 @@ function ProfileSection() {
             {Object.entries(data).map(([k,v])=>(
               <div key={k} style={{display: "contents"}}>
                 <div>{k}</div>
-                <div>{typeof v==="object" ? JSON.stringify(v) : String(v)}</div>
+                <div>{formatValue(v)}</div>
               </div>
             ))}
           </div>
@@ -194,25 +336,29 @@ function ProfileSection() {
 
 /* ========================= GARAGE (backend + fallback) ========================= */
 const carsKey = "ag_cars";
-const getCarsLocal = ():Vehicle[] => JSON.parse(localStorage.getItem(carsKey)||"[]");
-const setCarsLocal = (arr:Vehicle[]) => localStorage.setItem(carsKey, JSON.stringify(arr));
+const getCarsLocal = ():GarageVehicle[] => readLocalArray<GarageVehicle>(carsKey);
+const setCarsLocal = (arr:GarageVehicle[]) => localStorage.setItem(carsKey, JSON.stringify(arr));
 const backendUnavailable = (status?: number) => !status || status===404 || status===501;
 
 function GarageSection() {
   const { token, setToken } = useAuth();
-  const [cars,setCars]=useState<Vehicle[]>([]);
-  const [form,setForm]=useState<Vehicle>({});
+  const [cars,setCars]=useState<GarageVehicle[]>([]);
+  const [form,setForm]=useState<GarageVehicleForm>({});
   const [msg,setMsg]=useState("");
   const [useLocal,setUseLocal]=useState(false);
   const [loading,setLoading]=useState(false);
 
-  useEffect(()=>{ load(); /* eslint-disable-next-line */},[]);
+  const applyVehicleMapping = (vehicle: Vehicle): GarageVehicle => ({
+    ...vehicle,
+    brand: vehicle.brand ?? vehicle.make,
+    reg: vehicle.reg ?? vehicle.plate,
+  });
 
-  async function load(){
+  const load = useCallback(async () => {
     setLoading(true); setMsg("Pobieram pojazdy...");
     const res = await listVehicles(token);
     if (res.ok && Array.isArray(res.data)) {
-      setCars(res.data); setUseLocal(false); setMsg("Gotowe.");
+      setCars(res.data.map(applyVehicleMapping)); setUseLocal(false); setMsg("Gotowe.");
     } else if (res.status === 401) {
       setToken(null);
       setCars(getCarsLocal()); setUseLocal(true);
@@ -221,12 +367,16 @@ function GarageSection() {
       setCars(getCarsLocal()); setUseLocal(true);
       setMsg("Brak /vehicles — tryb lokalny (demo).");
     } else {
-      setMsg("❌ " + (res.data?.detail || "Błąd pobierania"));
+      setMsg("❌ " + (detailFrom(res.data) || "Błąd pobierania"));
     }
     setLoading(false);
-  }
+  }, [token, setToken]);
 
-  async function add(){
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  async function add(): Promise<void> {
     if (!form.reg && !form.vin && !form.brand) {
       setMsg("Podaj min. rejestrację / VIN / markę."); return;
     }
@@ -240,13 +390,14 @@ function GarageSection() {
       return;
     }
     setMsg("Dodaję pojazd...");
-    const res = await createVehicle(form, token);
+    const payload = toCreateVehicleInput(form);
+    const res = await createVehicle(payload, token);
     if (res.ok) { setMsg("✅ Dodano."); setForm({}); await load(); }
     else if (res.status===401) { setToken(null); setMsg("Sesja wygasła — zaloguj się ponownie."); }
-    else setMsg("❌ " + (res.data?.detail || "Błąd dodawania"));
+    else setMsg("❌ " + (detailFrom(res.data) || "Błąd dodawania"));
   }
 
-  async function remove(id?: string){
+  async function remove(id?: string): Promise<void> {
     if (!id) return;
     if (useLocal) {
       const next=cars.filter(c=>c.id!==id);
@@ -256,7 +407,7 @@ function GarageSection() {
     const res = await deleteVehicle(id, token);
     if (res.ok) { setMsg("Usunięto."); await load(); }
     else if (res.status===401) { setToken(null); setMsg("Sesja wygasła — zaloguj się ponownie."); }
-    else setMsg("❌ " + (res.data?.detail || "Błąd usuwania"));
+    else setMsg("❌ " + (detailFrom(res.data) || "Błąd usuwania"));
   }
 
   return (
@@ -330,37 +481,37 @@ function GarageSection() {
 
 /* ========================= POLISY (backend + fallback) ========================= */
 const polKey = "ag_policies";
-const getPolLocal = ():Policy[] => JSON.parse(localStorage.getItem(polKey)||"[]");
-const setPolLocal = (arr:Policy[]) => localStorage.setItem(polKey, JSON.stringify(arr));
+const getPolLocal = ():PolicyLoose[] => readLocalArray<PolicyLoose>(polKey);
+const setPolLocal = (arr:PolicyLoose[]) => localStorage.setItem(polKey, JSON.stringify(arr));
 
 function PolisySection() {
   const { token, setToken } = useAuth();
   const [msg,setMsg]=useState("");
-  const [backendList,setBackendList]=useState<Policy[]>([]);
-  const [local,setLocal]=useState<Policy[]>(getPolLocal());
-  const [form,setForm]=useState<Policy>({});
+  const [backendList,setBackendList]=useState<PolicyLoose[]>([]);
+  const [local,setLocal]=useState<PolicyLoose[]>(getPolLocal());
+  const [form,setForm]=useState<PolicyLoose>({});
   const [useLocal,setUseLocal]=useState(false);
   const [loading,setLoading]=useState(false);
+  const formPeriod = policyPeriod(form);
 
-  async function load(){
+  async function load(): Promise<void> {
     setLoading(true); setMsg("Pobieram...");
     const res = await listPolicies(token);
     if (res.ok) {
-      const items = Array.isArray(res.data) ? res.data : (res.data as any)?.items || [];
-      setBackendList(items as Policy[]); setUseLocal(false); setMsg("Gotowe.");
+      const items = extractPolicies(res.data);
+      setBackendList(items); setUseLocal(false); setMsg("Gotowe.");
     } else if (res.status===401) {
       setToken(null); setUseLocal(true); setMsg("Sesja wygasła — zaloguj się ponownie. Pokazuję lokalne.");
-    } else if (!res.status || res.status===404 || res.status===501) {
+    } else if (backendUnavailable(res.status)) {
       setUseLocal(true); setMsg("Brak endpointu — tryb lokalny (demo).");
     } else {
-      setMsg("❌ " + (res.data?.detail || "Błąd pobierania"));
+      setMsg("❌ " + (detailFrom(res.data) || "Błąd pobierania"));
     }
     setLoading(false);
   }
 
-  async function add() {
-    const valid_from = (form as any).valid_from || (form as any).from;
-    const valid_to   = (form as any).valid_to   || (form as any).to;
+  async function add(): Promise<void> {
+    const { from: valid_from, to: valid_to } = formPeriod;
 
     if (!isDateRangeValid(valid_from, valid_to)) {
       setMsg("Zakres dat jest niepoprawny (Od musi ≤ Do)."); return;
@@ -376,13 +527,13 @@ function PolisySection() {
       number: form.number,
       insurer: form.insurer,
       premium: form.premium ? Number(form.premium) : undefined,
-      valid_from,
-      valid_to,
+      valid_from: valid_from ?? undefined,
+      valid_to: valid_to ?? undefined,
       deductible: form.deductible ? Number(form.deductible) : undefined,
       coverage: Array.isArray(form.coverage)
         ? form.coverage
         : typeof form.coverage === "string"
-          ? (form.coverage as string).split(/,|;|\n/).map(s=>s.trim()).filter(Boolean)
+          ? form.coverage.split(/,|;|\n/).map(s=>s.trim()).filter(Boolean)
           : undefined
     };
 
@@ -396,10 +547,10 @@ function PolisySection() {
     const res = await createPolicy(payload, token);
     if (res.ok) { setMsg("✅ Zapisano."); setForm({}); await load(); }
     else if (res.status===401) { setToken(null); setMsg("Sesja wygasła — zaloguj się ponownie."); }
-    else setMsg("❌ " + (res.data?.detail || "Błąd zapisu"));
+    else setMsg("❌ " + (detailFrom(res.data) || "Błąd zapisu"));
   }
 
-  async function remove(p: Policy) {
+  async function remove(p: PolicyLoose): Promise<void> {
     if (useLocal) {
       const next = local.filter(x => x.id !== p.id);
       setPolLocal(next); setLocal(next);
@@ -410,7 +561,7 @@ function PolisySection() {
     const res = await deletePolicy(String(p.id), token);
     if (res.ok) { setMsg("Usunięto."); await load(); }
     else if (res.status===401) { setToken(null); setMsg("Sesja wygasła — zaloguj się ponownie."); }
-    else setMsg("❌ " + (res.data?.detail || "Błąd usuwania"));
+    else setMsg("❌ " + (detailFrom(res.data) || "Błąd usuwania"));
   }
 
   return (
@@ -431,10 +582,10 @@ function PolisySection() {
                 <button className="btn warn" onClick={()=>remove(p)}>Usuń</button>
               </div>
               <div className="kv" style={{marginTop:8}}>
-                <div>Okres</div><div>{(p as any).valid_from||"—"} → {(p as any).valid_to||"—"}</div>
+                <div>Okres</div><div>{formatPolicyPeriod(p)}</div>
                 <div>Składka</div><div>{p.premium ?? "—"}</div>
                 <div>Udział własny</div><div>{p.deductible ?? "—"}</div>
-                <div>Zakres</div><div>{Array.isArray(p.coverage)? p.coverage.join(", "): (p.coverage||"—")}</div>
+                <div>Zakres</div><div>{Array.isArray(p.coverage)? p.coverage.join(", "): (p.coverage??"—")}</div>
               </div>
             </div>
           ))}
@@ -453,7 +604,7 @@ function PolisySection() {
                   <button className="btn warn" onClick={()=>remove(p)}>Usuń</button>
                 </div>
                 <div className="kv" style={{marginTop:8}}>
-                  <div>Okres</div><div>{(p as any).valid_from||(p as any).from||"—"} → {(p as any).valid_to||(p as any).to||"—"}</div>
+                  <div>Okres</div><div>{formatPolicyPeriod(p)}</div>
                   <div>Składka</div><div>{p.premium||"—"}</div>
                   <div>Udział własny</div><div>{p.deductible||"—"}</div>
                 </div>
@@ -480,14 +631,14 @@ function PolisySection() {
           <label>Od
             <input
               type="date"
-              value={(form as any).valid_from || (form as any).from || ""}
+              value={formPeriod.from || ""}
               onChange={e=>setForm(f=>({...f, valid_from:e.target.value}))}
             />
           </label>
           <label>Do
             <input
               type="date"
-              value={(form as any).valid_to || (form as any).to || ""}
+              value={formPeriod.to || ""}
               onChange={e=>setForm(f=>({...f, valid_to:e.target.value}))}
             />
           </label>
@@ -508,52 +659,66 @@ function UploadSection() {
   const { token } = useAuth();
   const [file,setFile]=useState<File|null>(null);
   const [msg,setMsg]=useState("");
-  const [raw,setRaw]=useState<any>(null);
-  const [mapped,setMapped]=useState<any>({});
+  const [raw,setRaw]=useState<OcrExtract|null>(null);
+  const [mapped,setMapped]=useState<MappedPolicyPreview>({...EMPTY_MAPPED_POLICY});
 
-  async function send(){
+  const stringifyOrEmpty = (value: unknown): string => (
+    value === undefined || value === null ? "" : String(value)
+  );
+
+  const toDateInput = (value?: string): string => (
+    value ? value.slice(0, 10) : ""
+  );
+
+  async function send(): Promise<void> {
     if (!file) return alert("Wybierz PDF");
     setMsg("Wysyłam...");
     const fd = new FormData();
     fd.append("file", file);
 
-    const res = await tryFetch({
+    const res = await tryFetch<UploadResponse>({
       paths: ENDPOINTS.uploadPdf,
       method:"POST",
-      headers:{ ...authHeaders(token) }, // NIE ustawiaj Content-Type przy FormData
-      body: fd as any
+      headers: authHeaders(token), // NIE ustawiaj Content-Type przy FormData
+      body: fd
     });
 
     if (!res.ok){
-      setMsg("❌ "+(res.data?.detail || "Błąd OCR"));
+      setMsg("❌ "+(detailFrom(res.data) || "Błąd OCR"));
       return;
     }
 
-    const data = res.data || {};
-    const ext = data.extracted || data;
+    const data = res.data;
+    const ext: OcrExtract = ('extracted' in data && data.extracted)
+      ? data.extracted
+      : data;
     setRaw(ext);
+    const normalized = normalizePolicy(ext);
+    const coverage = Array.isArray(normalized.coverage)
+      ? normalized.coverage.join(", ")
+      : stringifyOrEmpty(normalized.coverage);
     setMapped({
-      number: ext.policy_number || ext.number || "",
-      insurer: ext.insurer || "",
-      premium: ext.premium ?? "",
-      valid_from: (ext.valid_from || "").slice(0,10),
-      valid_to: (ext.valid_to || "").slice(0,10),
-      deductible: ext.deductible ?? "",
-      coverage: Array.isArray(ext.coverage)? ext.coverage.join(", "): (ext.coverage||"")
+      number: stringifyOrEmpty(ext.policy_number ?? normalized.number),
+      insurer: stringifyOrEmpty(normalized.insurer),
+      premium: stringifyOrEmpty(normalized.premium),
+      valid_from: toDateInput(normalized.valid_from),
+      valid_to: toDateInput(normalized.valid_to),
+      deductible: stringifyOrEmpty(normalized.deductible),
+      coverage,
     });
     setMsg("Przetwarzanie OK.");
   }
 
-  async function save(){
+  async function save(): Promise<void> {
     if (!raw) return;
     setMsg("Zapisuję do bazy...");
-    const res = await tryFetch({
+    const res = await tryFetch<SavePolicyResponse>({
       paths: ENDPOINTS.zapiszPolise,
       method:"POST",
       headers:{ "Content-Type":"application/json", ...authHeaders(token) },
       body: JSON.stringify({ data: raw })
     });
-    setMsg(res.ok ? "✅ Zapisano polisę." : "❌ "+(res.data?.detail || "Błąd zapisu"));
+    setMsg(res.ok ? "✅ Zapisano polisę." : "❌ "+(detailFrom(res.data) || "Błąd zapisu"));
   }
 
   return (
