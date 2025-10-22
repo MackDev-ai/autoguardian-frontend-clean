@@ -1,52 +1,22 @@
-// lib/vehicles.ts
-import { ENDPOINTS, tryFetch } from "./api";
+import { tryFetch } from "./api";
 
-export type Vehicle = {
+export type Policy = {
   id?: string;
-  reg?: string;
-  vin?: string;
-  brand?: string;
-  model?: string;
-  year?: number | string;
-  odo?: number | string;
-  inspection?: string; // ISO date
-  ocUntil?: string;    // ISO date
+  number?: string;
+  insurer?: string;
+  premium?: number | string;
+  valid_from?: string;
+  valid_to?: string;
+  deductible?: number | string;
+  coverage?: string[] | string;
 };
 
-export async function listVehicles(token?: string | null) {
-  return await tryFetch<Vehicle[]>({
-    paths: "/vehicles", // jeśli masz inną ścieżkę, zmień tutaj
-    headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) }
-  });
+export async function listPolicies(token?: string | null) {
+  return await tryFetch<Policy[]>({ paths: ["/pobierz-polisy","/polisy"], headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
 }
-
-export async function createVehicle(body: Vehicle, token?: string | null) {
-  return await tryFetch<Vehicle>({
-    paths: "/vehicles",
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {})
-    },
-    body: JSON.stringify(body),
-  });
+export async function createPolicy(body: Policy, token?: string | null) {
+  return await tryFetch<Policy>({ paths: ["/polisy", "/zapisz-polise"], method: "POST", headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify(body) });
 }
-
-export async function deleteVehicle(id: string, token?: string | null) {
-  return await tryFetch({
-    paths: `/vehicles/${id}`,
-    method: "DELETE",
-    headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-  });
-}
-export async function updateVehicle(id: string, body: Vehicle, token?: string | null) {
-  return await tryFetch<Vehicle>({
-    paths: `/vehicles/${id}`,
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {})
-    },
-    body: JSON.stringify(body),
-  });
+export async function deletePolicy(id: string, token?: string | null) {
+  return await tryFetch({ paths: `/polisy/${id}`, method: "DELETE", headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
 }

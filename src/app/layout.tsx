@@ -1,20 +1,8 @@
 import "./globals.css";
 import type { Metadata } from "next";
 import { AuthProvider } from "../../context/AuthProvider";
-
-
-"use client";
-import { useEffect } from "react";
-import { setUnauthorizedHandler } from "../../lib/api";
-import { useAuth } from "../../context/AuthProvider";
-
-function AuthBridge() {
-  const { setToken } = useAuth();
-  useEffect(() => {
-    setUnauthorizedHandler(() => setToken(null));
-  }, [setToken]);
-  return null;
-}
+import { ToastProvider } from "../../context/ToastContext";
+import AuthBridge from "../app/AuthBridge";
 
 export const metadata: Metadata = {
   title: "AutoGuardian – MVP",
@@ -25,7 +13,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="pl">
       <body>
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          <AuthBridge />
+          <ToastProvider>
+            {children}
+          </ToastProvider>
+        </AuthProvider>
       </body>
     </html>
   );
