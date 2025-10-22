@@ -1,38 +1,87 @@
-export const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
+export const API_BASE: string =
+  process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:8000';
 
+// Handler do obsługi 401 (unauthorized)
 let onUnauthorized: (() => void) | null = null;
-export function setUnauthorizedHandler(fn: () => void) { onUnauthorized = fn; }
 
-type TryFetchOpts = RequestInit & { paths: string | string[] };
+export function setUnauthorizedHandler(fn: () => void): void {
+  onUnauthorized = fn;
+}
 
-export async function tryFetch<T = any>({ paths, ...options }: TryFetchOpts): Promise<{ ok: boolean; data: T | any; status: number; path?: string; }> {
+// Typy opcji i wyników zapytań
+export interface TryFetchOptions extends RequestInit {
+  paths: string | string[];
+}
+
+export interface TryFetchResult<T> {
+  ok: boolean;
+  data: T;
+  status: number;
+  path?: string;
+}
+
+// Główny wrapper fetch z obsługą wielu endpointów i błędów
+export async function tryFetch<T = unknown>(
+  options: TryFetchOptions
+): Promise<TryFetchResult<T>> {
+  const { paths, ...rest } = options;
   const list = Array.isArray(paths) ? paths : [paths];
-  let lastErr: any = null;
+  let lastErr: TryFetchResult<T> = {
+    ok: false,
+    data: {} as T,
+    status: 0,
+  };
+
   for (const p of list) {
     try {
-      const res = await fetch(API_BASE + p, {
-        ...options,
-        headers: { Accept: "application/json", ...(options.headers || {}) },
-        credentials: "include",
+      const res = await fetch(`${API_BASE}${p}`, {
+        ...rest,
+        headers: {
+          Accept: 'application/json',
+          ...(rest.headers || {}),
+        },
+        credentials: 'include',
       });
-      const data = await res.json().catch(() => ({}));
-      if (res.status === 401 && onUnauthorized) { try { onUnauthorized(); } catch {} }
-      if (res.ok) return { ok: true, data, status: res.status, path: p };
+
+      const data: T = await res.json().catch(() => ({} as T));
+
+      if (res.status === 401 && onUnauthorized) {
+        try {
+          onUnauthorized();
+        } catch {
+          // Ignoruj błędy handlera
+        }
+      }
+
+      if (res.ok) {
+        return { ok: true, data, status: res.status, path: p };
+      }
+
       lastErr = { ok: false, data, status: res.status, path: p };
-    } catch (e: any) {
-      lastErr = { ok: false, data: { detail: String(e) }, status: 0, path: p };
+    } catch (e) {
+      lastErr = {
+        ok: false,
+        data: { detail: String(e) } as T,
+        status: 0,
+        path: p,
+      };
     }
   }
+
   return lastErr;
 }
 
+// Lista endpointów API
 export const ENDPOINTS = {
-  login: ["/auth/login", "/login"],
-  register: ["/auth/register", "/register"],
-  me: "/me",
-  polisyList: ["/pobierz-polisy", "/polisy"],
-  uploadPdf: "/upload-pdf",
-  zapiszPolise: ["/zapisz-polise", "/polisy"],
+  login: ['/auth/login', '/login'],
+  register: ['/auth/register', '/register'],
+  me: '/me',
+  polisyList: ['/pobierz-polisy', '/polisy'],
+  uploadPdf: '/upload-pdf',
+  zapiszPolise: ['/zapisz-polise', '/polisy'],
 };
 
-export async function health(){ return tryFetch({ paths: ["/health", "/"] }); }
+// Prosty check zdrowia backendu
+export async function health(): Promise<TryFetchResult<Record<string, unknown>>> {
+  return tryFetch<Record<string, unknown>>({ paths: ['/health', '/'] });
+}
