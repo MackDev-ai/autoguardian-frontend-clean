@@ -22,7 +22,7 @@ export default function Me() {
       .then((res) => res.json())
       .then((data) => {
         if (data.detail) {
-          setError(data.detail);
+          setError('Błąd: ', data.detail);
         } else {
           setUser(data);
         }
