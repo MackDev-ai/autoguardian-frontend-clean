@@ -73,12 +73,12 @@ export async function tryFetch<T = unknown>(
 
 // Lista endpointów API
 export const ENDPOINTS = {
-  login: ['/auth/login', '/login'],
-  register: ['/auth/register', '/register'],
+  login: '/auth/login',
+  register: '/auth/register',
   me: '/me',
-  polisyList: ['/pobierz-polisy', '/polisy'],
+  polisyList: '/pobierz-polisy',
   uploadPdf: '/upload-pdf',
-  zapiszPolise: ['/zapisz-polise', '/polisy'],
+  zapiszPolise: '/zapisz-polise',
 };
 
 // Prosty check zdrowia backendu
