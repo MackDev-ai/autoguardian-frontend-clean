@@ -66,7 +66,7 @@ export default function Login() {
     });
 
     router.push("/");
-  } catch (err) {
+  } catch (_err) {
     setError("Błąd połączenia (CORS/sieć). Sprawdź, czy API jest dostępne.");
   }
 }
