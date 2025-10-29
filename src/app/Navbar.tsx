@@ -1,22 +1,15 @@
 "use client";
 
-import Cookies from "js-cookie";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useAuth } from "../../context/AuthProvider"; // popraw ścieżkę jeśli inna
 
 export default function Navbar() {
   const router = useRouter();
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-
-  useEffect(() => {
-    const token = Cookies.get("token");
-    setIsLoggedIn(!!token); // true jeśli token istnieje
-  }, []);
+  const { isAuthed, setToken } = useAuth();
 
   function handleLogout() {
-    Cookies.remove("token");
-    setIsLoggedIn(false);
-    router.push("/login");
+    setToken(null); // Usuwa token z localStorage i czyści kontekst
+    router.push("/auth"); // zakładam, że masz łączoną stronę logowania/rejestracji
   }
 
   return (
@@ -28,41 +21,16 @@ export default function Navbar() {
         🚗 AutoGuardian
       </h1>
       <div className="space-x-4">
-        {isLoggedIn ? (
+        {isAuthed ? (
           <>
-            <button
-              onClick={() => router.push("/polisy")}
-              className="hover:underline"
-            >
-              Polisy
-            </button>
-            <button
-              onClick={() => router.push("/me")}
-              className="hover:underline"
-            >
-              Profil
-            </button>
-            <button
-              onClick={handleLogout}
-              className="bg-red-600 px-4 py-2 rounded hover:bg-red-700"
-            >
-              Wyloguj się
-            </button>
+            <button onClick={() => router.push("/polisy")} className="hover:underline">Polisy</button>
+            <button onClick={() => router.push("/me")} className="hover:underline">Profil</button>
+            <button onClick={handleLogout} className="bg-red-600 px-4 py-2 rounded hover:bg-red-700">Wyloguj się</button>
           </>
         ) : (
           <>
-            <button
-              onClick={() => router.push("/login")}
-              className="hover:underline"
-            >
-              Zaloguj się
-            </button>
-            <button
-              onClick={() => router.push("/register")}
-              className="hover:underline"
-            >
-              Rejestracja
-            </button>
+            <button onClick={() => router.push("/auth")} className="hover:underline">Zaloguj się</button>
+            <button onClick={() => router.push("/auth")} className="hover:underline">Rejestracja</button>
           </>
         )}
       </div>
