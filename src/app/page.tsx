@@ -183,43 +183,61 @@ export default function Page() {
   const [tab, setTab] = useState<TabKey>("auth");
 
   return (
-    <>
-      <header>
-        <div className="wrap nav">
-          <div className="brand">🚗 AutoGuardian · MVP</div>
-          {(["auth","profile","garage","polisy","upload"] as TabKey[]).map(t => (
-            <button
-              key={t}
-              className={`tab ${tab===t?"active":""}`}
-              onClick={()=>setTab(t)}
-            >
-              {t==="auth" ? "Auth (Log/Rej)"
-               : t==="profile" ? "Profil"
-               : t==="garage" ? "Garaż"
-               : t==="polisy" ? "Polisy"
-               : "Upload PDF"}
-            </button>
-          ))}
-          <div className="right inline">
-            <span className="badge">{isAuthed ? "Zalogowany" : "Niezalogowany"}</span>
-            {isAuthed && (
-              <button className="btn ghost" onClick={()=>setToken(null)}>
-                Wyloguj
+  <>
+    <header>
+      <div className="wrap nav">
+        <div className="brand">🚗 AutoGuardian · MVP</div>
+        
+        {isAuthed ? (
+          <>
+            {(["profile", "garage", "polisy", "upload"] as TabKey[]).map((t) => (
+              <button
+                key={t}
+                className={`tab ${tab === t ? "active" : ""}`}
+                onClick={() => setTab(t)}
+              >
+                {t === "profile"
+                  ? "Profil"
+                  : t === "garage"
+                  ? "Garaż"
+                  : t === "polisy"
+                  ? "Polisy"
+                  : "Upload PDF"}
               </button>
-            )}
-          </div>
-        </div>
-      </header>
+            ))}
+          </>
+        ) : (
+          <button
+            key="auth"
+            className={`tab ${tab === "auth" ? "active" : ""}`}
+            onClick={() => setTab("auth")}
+          >
+            Logowanie / Rejestracja
+          </button>
+        )}
 
-      <main className="wrap">
-        {tab==="auth" && <AuthSection onSuccess={()=>setTab("profile")} />}
-        {tab==="profile" && <ProfileSection />}
-        {tab==="garage" && <GarageSection />}
-        {tab==="polisy" && <PolisySection />}
-        {tab==="upload" && <UploadSection />}
-      </main>
-    </>
-  );
+        <div className="right inline">
+          <span className="badge">
+            {isAuthed ? "Zalogowany" : "Niezalogowany"}
+          </span>
+          {isAuthed && (
+            <button className="btn ghost" onClick={() => setToken(null)}>
+              Wyloguj
+            </button>
+          )}
+        </div>
+      </div>
+    </header>
+
+    <main className="wrap">
+      {tab === "auth" && <AuthSection onSuccess={() => setTab("profile")} />}
+      {tab === "profile" && <ProfileSection />}
+      {tab === "garage" && <GarageSection />}
+      {tab === "polisy" && <PolisySection />}
+      {tab === "upload" && <UploadSection />}
+    </main>
+  </>
+);
 }
 
 /* ========================= AUTH ========================= */

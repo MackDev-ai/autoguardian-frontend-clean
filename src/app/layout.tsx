@@ -3,7 +3,6 @@ import type { Metadata } from "next";
 import { AuthProvider } from "../../context/AuthProvider";
 import { ToastProvider } from "../../context/ToastContext";
 import AuthBridge from "../app/AuthBridge";
-import Navbar from "../../src/app/Navbar";
 
 export const metadata: Metadata = {
   title: "AutoGuardian – MVP",
@@ -16,8 +15,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <AuthProvider>
           <AuthBridge />
-          <ToastProvider>
-            <Navbar /> 
+          <ToastProvider> 
             {children}
           </ToastProvider>
         </AuthProvider>
