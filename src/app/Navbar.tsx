@@ -5,8 +5,8 @@ import { useAuth } from "../../context/AuthProvider"; // popraw ścieżkę jeśl
 
 export default function Navbar() {
   const router = useRouter();
-  const { isAuthed, setToken } = useAuth();
-  console.log("Navbar → isAuthed:", isAuthed, "token:", setToken);
+  const { isAuthed, setToken, token } = useAuth();
+  console.log("Navbar → isAuthed:", isAuthed, "token:", token);
 
   function handleLogout() {
     setToken(null); // Usuwa token z localStorage i czyści kontekst
