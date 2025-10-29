@@ -10,7 +10,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => { const t = localStorage.getItem("ag_token"); if (t) setTokenState(t); }, []);
 
   const setToken = (t: string | null) => {
-    if (t) localStorage.setItem("ag_token", t); else localStorage.removeItem("ag_token");
+    if (typeof window !== "undefined") {
+      if (t) {
+        localStorage.setItem("ag_token", t);
+        document.cookie = `ag_token=${t}; path=/`;
+      } else {
+        localStorage.removeItem("ag_token");
+        document.cookie = "ag_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+      }
+    }
     setTokenState(t);
   };
 
