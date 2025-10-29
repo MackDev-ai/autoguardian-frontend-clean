@@ -37,3 +37,5 @@ export default function Navbar() {
     </nav>
   );
 }
+const { isAuthed, token } = useAuth();
+console.log("Navbar → isAuthed:", isAuthed, "token:", token);
