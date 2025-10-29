@@ -40,7 +40,7 @@ export default function ResetPasswordPage() {
         setStatus("error");
         setError(data.detail || "Wystąpił błąd.");
       }
-    } catch (err) {
+    } catch (_err) {
       setStatus("error");
       setError("Nie udało się połączyć z serwerem.");
     }
