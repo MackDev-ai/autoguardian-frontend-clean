@@ -380,10 +380,13 @@ function GarageSection() {
   const [loading,setLoading]=useState(false);
 
   const applyVehicleMapping = (vehicle: Vehicle): GarageVehicle => ({
-    ...vehicle,
-    brand: vehicle.brand ?? vehicle.make,
-    reg: vehicle.reg ?? vehicle.plate,
-  });
+  ...vehicle,
+  brand: (vehicle.brand ?? vehicle.make) as string | undefined,
+  reg: (vehicle.reg ?? (vehicle as any).registration) as string | undefined,
+  odo: (vehicle.odo ?? (vehicle as any).mileage_km) as number | string | undefined,
+  inspection: (vehicle.inspection ?? (vehicle as any).inspection_date) as string | undefined,
+  ocUntil: (vehicle.ocUntil ?? (vehicle as any).insurance_date) as string | undefined,
+});
 
   const load = useCallback(async () => {
     setLoading(true); setMsg("Pobieram pojazdy...");
