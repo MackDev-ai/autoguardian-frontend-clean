@@ -501,6 +501,7 @@ function GarageSection() {
               </div>
               <div className="kv" style={{marginTop:8}}>
                 <div>Rok</div><div>{c.year||"—"}</div>
+                <div>VIN</div><div>{c.vin || "—"}</div>
                 <div>Przebieg</div><div>{c.odo ? `${c.odo} km` : "—"}</div>
                 <div>Przegląd do</div><div>{c.inspection||"—"}</div>
                 <div>OC do</div><div>{c.ocUntil||"—"}</div>
