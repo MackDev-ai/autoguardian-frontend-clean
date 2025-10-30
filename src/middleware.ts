@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const PROTECTED_PATHS = ["/me", "/garage", "/polisy", "/upload-pdf"];
+const PROTECTED_PATHS = ["/me", "/garage", "/polisy", "/upload-pdf","/ubezpieczenie/upload","/dowod/dodaj-auto","/dowod"];
 
 export function middleware(req: NextRequest) {
   const token = req.cookies.get("ag_token")?.value;
@@ -19,5 +19,5 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/me", "/garage", "/polisy", "/upload-pdf"],
+  matcher: ["/me", "/garage", "/polisy", "/upload-pdf","/ubezpieczenie/upload","/dowod/dodaj-auto","/dowod"],
 };
