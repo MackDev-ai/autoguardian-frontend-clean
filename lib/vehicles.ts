@@ -7,37 +7,28 @@ import { tryFetch, type TryFetchResult } from './api';
 export interface Vehicle {
   id?: string | number;
 
-  /** Nazwa producenta pojazdu (backend: make) */
-  make?: string;
-
-  /** Nazwa modelu pojazdu (backend: model) */
+  // podstawowe pola (zgodne z backendem)
+  make?: string; // marka
   model?: string;
-
-  /** Numer rejestracyjny (backend: registration) */
-  plate?: string;   // alias lokalny
-  reg?: string;     // alias lokalny
-
-  /** Alternatywna nazwa producenta (frontend alias dla make) */
-  brand?: string;   // alias lokalny
-
-  /** Rok produkcji */
   year?: number | string;
-
-  /** Numer VIN */
   vin?: string;
 
-  /** Przebieg (backend: mileage_km) */
-  odo?: number | string;
+  // pola backendowe
+  registration?: string; // numer rejestracyjny
+  mileage_km?: number | string; // przebieg
+  inspection_date?: string; // data przeglądu
+  insurance_date?: string; // data ważności OC
 
-  /** Data następnego przeglądu technicznego (backend: inspection_date) */
-  inspection?: string;
-
-  /** Data ważności polisy OC (backend: insurance_date) */
-  ocUntil?: string;
+  // aliasy frontendowe (do wyświetlania)
+  brand?: string; // alternatywna nazwa marki (FE)
+  plate?: string; // alias do registration
+  reg?: string; // alias do registration
+  odo?: number | string; // alias do mileage_km
+  inspection?: string; // alias do inspection_date
+  ocUntil?: string; // alias do insurance_date
 
   created_at?: string;
   updated_at?: string;
-
   [key: string]: unknown;
 }
 
