@@ -11,7 +11,7 @@ export function middleware(req: NextRequest) {
   const isProtected = PROTECTED_PATHS.some(path => pathname.startsWith(path));
 
   if (isProtected && !token) {
-    url.pathname = "/auth";
+    url.pathname = "/";
     return NextResponse.redirect(url);
   }
 
