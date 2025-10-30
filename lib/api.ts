@@ -45,12 +45,41 @@ export async function tryFetch<T = unknown>(
 
       const data: T = await res.json().catch(() => ({} as T));
 
-      if (res.status === 401 && onUnauthorized) {
-        try {
-          onUnauthorized();
-        } catch {
-          // Ignoruj błędy handlera
+      // Jeśli 401 — spróbuj odświeżyć token
+      if (res.status === 401) {
+        const refreshed = await fetch(`${API_BASE}/auth/refresh-token`, {
+          method: "POST",
+          credentials: "include",
+        });
+
+        if (refreshed.ok) {
+          // ponów zapytanie
+          const retry = await fetch(`${API_BASE}${p}`, {
+            ...rest,
+            headers: {
+              Accept: 'application/json',
+              ...(rest.headers || {}),
+            },
+            credentials: "include",
+          });
+
+          const retryData: T = await retry.json().catch(() => ({} as T));
+
+          if (retry.ok) {
+            return { ok: true, data: retryData, status: retry.status, path: p };
+          }
+
+          lastErr = { ok: false, data: retryData, status: retry.status, path: p };
+        } else {
+          // Nie udało się odświeżyć – wywołaj handler 401
+          if (onUnauthorized) {
+            try {
+              onUnauthorized();
+            } catch {}
+          }
         }
+
+        lastErr = { ok: false, data, status: res.status, path: p };
       }
 
       if (res.ok) {
