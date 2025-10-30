@@ -1,3 +1,4 @@
+"use client";
 import "./globals.css";
 import type { Metadata } from "next";
 import { AuthProvider } from "../../context/AuthProvider";
