@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { getToken } from '../../../utils/auth';
+import { useAuth, authHeaders } from "../../../context/AuthProvider";
 
 type Polisa = {
   id: number;
@@ -10,37 +10,38 @@ type Polisa = {
 };
 
 export default function PolisyPage() {
+  const { token, isAuthed } = useAuth(); // 👈 token z AuthProvider
   const [polisy, setPolisy] = useState<Polisa[]>([]);
   const [loadingPolisy, setLoadingPolisy] = useState(true);
 
-  // ---- pobieranie polis z backendu ----
-  const fetchPolisy = async () => {
-  setLoadingPolisy(true);
-  try {
-    if (typeof window !== "undefined") {
-      console.log("📦 localStorage w /polisy:", { ...localStorage });
-    }
+  const fetchPolisy = async (authToken: string | null) => {
+    setLoadingPolisy(true);
+    try {
+      if (!authToken) {
+        console.warn("Brak tokenu – użytkownik nie jest zalogowany.");
+        setPolisy([]);
+        setLoadingPolisy(false);
+        return;
+      }
 
-    const token = getToken();
-    console.log("🔑 Token w /polisy:", token);
+      console.log("🔑 Token w /polisy (z AuthProvider):", authToken);
 
-    if (!token) {
-      alert("Brak tokenu. Zaloguj się ponownie.");
-      setPolisy([]);
-      setLoadingPolisy(false);
-      return;
-    }
-
-    console.log("Authorization header:", `Bearer ${token}`);
-
-    const res = await fetch("https://api.autoguardian.pl/pobierz-polisy", {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+      const res = await fetch("https://api.autoguardian.pl/pobierz-polisy", {
+        method: "GET",
+        headers: {
+          ...authHeaders(authToken), // Authorization: Bearer <token>
+        },
+      });
 
       const data = await res.json();
+
+      if (res.status === 401) {
+        console.warn("401 przy pobieraniu polis – sesja wygasła.");
+        alert("Sesja wygasła lub brak autoryzacji. Zaloguj się ponownie.");
+        setPolisy([]);
+        setLoadingPolisy(false);
+        return;
+      }
 
       if (!res.ok) {
         console.error("Błąd pobierania polis:", data);
@@ -49,7 +50,6 @@ export default function PolisyPage() {
         return;
       }
 
-      // zakładamy, że backend zwraca tablicę
       setPolisy(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Błąd połączenia z API (pobierz-polisy):", error);
@@ -61,8 +61,9 @@ export default function PolisyPage() {
   };
 
   useEffect(() => {
-    fetchPolisy();
-  }, []);
+    // kiedy token się pojawi / zmieni, próbujemy pobrać polisy
+    fetchPolisy(token);
+  }, [token]);
 
   return (
     <main className="p-6 max-w-5xl mx-auto space-y-8">
@@ -105,7 +106,11 @@ export default function PolisyPage() {
           później rozbudujemy widok o szczegóły polisy.
         </p>
 
-        {loadingPolisy ? (
+        {!isAuthed ? (
+          <div className="rounded bg-slate-800 p-4 text-sm text-slate-300">
+            Musisz być zalogowany, aby zobaczyć swoje polisy.
+          </div>
+        ) : loadingPolisy ? (
           <div className="rounded bg-slate-800 p-4 text-sm text-slate-300">
             Ładowanie polis...
           </div>
