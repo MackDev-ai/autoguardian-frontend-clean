@@ -18,6 +18,16 @@ export default function PolisyPage() {
     setLoadingPolisy(true);
     try {
       const token = getToken();
+      console.log("🔑 Token w /polisy:", token);
+
+      if (!token) {
+        alert("Brak tokenu. Zaloguj się ponownie.");
+        setPolisy([]);
+        setLoadingPolisy(false);
+      return;
+  }
+
+  console.log("Authorization header:", `Bearer ${token}`);
 
       const res = await fetch("https://api.autoguardian.pl/pobierz-polisy", {
         method: "GET",
