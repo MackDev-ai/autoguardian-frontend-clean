@@ -9,6 +9,17 @@ type Polisa = {
   // później rozszerzymy o więcej pól (nr polisy, ubezpieczyciel itd.)
 };
 
+type ExtractedData = {
+  policy_number?: string;
+  insurer?: string;
+  premium?: string | number;
+  start_date?: string;
+  end_date?: string;
+  deductible?: string | number;
+  scope?: string;
+  [key: string]: any; // pozwala backendowi zwrócić inne pola
+};
+
 export default function PolisyPage() {
   const { token, isAuthed } = useAuth(); // token z AuthProvider
 
@@ -20,7 +31,7 @@ export default function PolisyPage() {
   const [file, setFile] = useState<File | null>(null);
   const [uploadLoading, setUploadLoading] = useState(false);
   const [ocrText, setOcrText] = useState<string>("");
-  const [extracted, setExtracted] = useState<any | null>(null);
+  const [extracted, setExtracted] = useState<ExtractedData  | null>(null);
 
   // ===========================
   //  POBIERANIE POLIS Z BACKENDU
@@ -125,7 +136,7 @@ export default function PolisyPage() {
 
       // Zakładamy strukturę odpowiedzi: { ocr_text: string, extracted: {...} }
       setOcrText(data.ocr_text || data.raw_text || "");
-      setExtracted(data.extracted || null);
+      setExtracted(data.extracted as ExtractedData || null);
 
       console.log("✅ Wynik OCR:", data);
       alert("Plik został przetworzony. Sprawdź podgląd danych poniżej.");
