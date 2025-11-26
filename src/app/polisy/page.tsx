@@ -15,26 +15,30 @@ export default function PolisyPage() {
 
   // ---- pobieranie polis z backendu ----
   const fetchPolisy = async () => {
-    setLoadingPolisy(true);
-    try {
-      const token = getToken();
-      console.log("🔑 Token w /polisy:", token);
+  setLoadingPolisy(true);
+  try {
+    if (typeof window !== "undefined") {
+      console.log("📦 localStorage w /polisy:", { ...localStorage });
+    }
 
-      if (!token) {
-        alert("Brak tokenu. Zaloguj się ponownie.");
-        setPolisy([]);
-        setLoadingPolisy(false);
+    const token = getToken();
+    console.log("🔑 Token w /polisy:", token);
+
+    if (!token) {
+      alert("Brak tokenu. Zaloguj się ponownie.");
+      setPolisy([]);
+      setLoadingPolisy(false);
       return;
-  }
+    }
 
-  console.log("Authorization header:", `Bearer ${token}`);
+    console.log("Authorization header:", `Bearer ${token}`);
 
-      const res = await fetch("https://api.autoguardian.pl/pobierz-polisy", {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+    const res = await fetch("https://api.autoguardian.pl/pobierz-polisy", {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
 
       const data = await res.json();
 
