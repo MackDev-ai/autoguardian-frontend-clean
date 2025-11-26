@@ -10,10 +10,21 @@ type Polisa = {
 };
 
 export default function PolisyPage() {
-  const { token, isAuthed } = useAuth(); // 👈 token z AuthProvider
+  const { token, isAuthed } = useAuth(); // token z AuthProvider
+
+  // --- stan dla listy polis ---
   const [polisy, setPolisy] = useState<Polisa[]>([]);
   const [loadingPolisy, setLoadingPolisy] = useState(true);
 
+  // --- stan dla uploadu PDF / OCR ---
+  const [file, setFile] = useState<File | null>(null);
+  const [uploadLoading, setUploadLoading] = useState(false);
+  const [ocrText, setOcrText] = useState<string>("");
+  const [extracted, setExtracted] = useState<any | null>(null);
+
+  // ===========================
+  //  POBIERANIE POLIS Z BACKENDU
+  // ===========================
   const fetchPolisy = async (authToken: string | null) => {
     setLoadingPolisy(true);
     try {
@@ -61,9 +72,70 @@ export default function PolisyPage() {
   };
 
   useEffect(() => {
-    // kiedy token się pojawi / zmieni, próbujemy pobrać polisy
     fetchPolisy(token);
   }, [token]);
+
+  // ===========================
+  //  UPLOAD PDF + OCR
+  // ===========================
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = e.target.files?.[0] ?? null;
+    setFile(selected);
+    setOcrText("");
+    setExtracted(null);
+  };
+
+  const handleUpload = async () => {
+    if (!file) {
+      alert("Wybierz plik PDF");
+      return;
+    }
+    if (!token) {
+      alert("Brak tokenu. Zaloguj się ponownie.");
+      return;
+    }
+
+    setUploadLoading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch("https://api.autoguardian.pl/upload-pdf", {
+        method: "POST",
+        headers: {
+          // NIE ustawiamy tutaj Content-Type – przeglądarka doda boundary
+          ...authHeaders(token),
+        },
+        body: formData,
+      });
+
+      const data = await res.json();
+
+      if (res.status === 401) {
+        alert("Sesja wygasła lub brak autoryzacji. Zaloguj się ponownie.");
+        return;
+      }
+
+      if (!res.ok) {
+        console.error("Błąd OCR:", data);
+        alert("Błąd podczas przetwarzania PDF: " + (data.detail || "Nieznany błąd"));
+        return;
+      }
+
+      // Zakładamy strukturę odpowiedzi: { ocr_text: string, extracted: {...} }
+      setOcrText(data.ocr_text || data.raw_text || "");
+      setExtracted(data.extracted || null);
+
+      console.log("✅ Wynik OCR:", data);
+      alert("Plik został przetworzony. Sprawdź podgląd danych poniżej.");
+    } catch (error) {
+      console.error("Błąd podczas uploadu PDF:", error);
+      alert("Nie udało się przetworzyć pliku.");
+    } finally {
+      setUploadLoading(false);
+    }
+  };
 
   return (
     <main className="p-6 max-w-5xl mx-auto space-y-8">
@@ -71,29 +143,56 @@ export default function PolisyPage() {
       <section className="p-4 rounded-lg bg-slate-900/50 border border-slate-700">
         <h1 className="text-2xl font-bold mb-2">Dodaj polisę</h1>
         <p className="text-sm text-slate-300 mb-4">
-          Możesz dodać nową polisę z pliku PDF (OCR). Później w tym miejscu
-          pojawi się formularz uploadu i podgląd wyodrębnionych danych.
+          Możesz dodać nową polisę z pliku PDF (OCR). Najpierw przetworzymy plik,
+          pokażemy wynik OCR i wyodrębnione dane, a w kolejnym kroku zapiszemy polisę do bazy.
         </p>
 
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          {/* placeholder pod input pliku – w kolejnym kroku podłączymy prawdziwy upload */}
-          <input
-            type="file"
-            disabled
-            className="text-sm opacity-60 cursor-not-allowed"
-          />
-          <button
-            disabled
-            className="px-4 py-2 rounded bg-blue-600/50 text-white text-sm cursor-not-allowed"
-          >
-            Wyślij i przetwórz (wkrótce)
-          </button>
-        </div>
+        {!isAuthed ? (
+          <div className="rounded bg-slate-800 p-4 text-sm text-slate-300">
+            Musisz być zalogowany, aby dodać polisę z PDF.
+          </div>
+        ) : (
+          <>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <input
+                type="file"
+                accept="application/pdf"
+                onChange={handleFileChange}
+                className="text-sm"
+              />
+              <button
+                onClick={handleUpload}
+                disabled={!file || uploadLoading}
+                className="px-4 py-2 rounded bg-blue-600 disabled:bg-blue-900 text-white text-sm"
+              >
+                {uploadLoading ? "Przetwarzanie..." : "Wyślij i przetwórz"}
+              </button>
+            </div>
+
+            {/* Podgląd wyodrębnionych danych */}
+            {extracted && (
+              <div className="mt-4 text-sm bg-slate-800 rounded p-3 max-h-64 overflow-auto">
+                <h2 className="font-semibold mb-2">Podgląd danych z PDF (extracted):</h2>
+                <pre className="whitespace-pre-wrap break-words">
+                  {JSON.stringify(extracted, null, 2)}
+                </pre>
+              </div>
+            )}
+
+            {/* Wynik OCR (raw) */}
+            {ocrText && (
+              <div className="mt-4 text-xs bg-slate-800 rounded p-3 max-h-64 overflow-auto">
+                <h2 className="font-semibold mb-2">Wynik OCR (raw):</h2>
+                <pre className="whitespace-pre-wrap break-words">{ocrText}</pre>
+              </div>
+            )}
+          </>
+        )}
 
         <div className="mt-4 text-xs text-slate-400">
           <p>
-            Na kolejnym etapie w tym bloku podłączymy upload PDF, wywołanie OCR
-            i zapis polisy do bazy.
+            W następnym kroku podepniemy automatyczny zapis polisy do bazy na podstawie
+            wyodrębnionych danych.
           </p>
         </div>
       </section>
