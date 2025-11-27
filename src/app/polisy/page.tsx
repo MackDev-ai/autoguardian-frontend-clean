@@ -4,9 +4,14 @@ import React, { useEffect, useState } from "react";
 import { useAuth, authHeaders } from "../../../context/AuthProvider";
 
 type Polisa = {
-  id: number;
-  created_at: string;
-  // później rozszerzymy o więcej pól (nr polisy, ubezpieczyciel itd.)
+  id: string;
+  number: string | null;
+  insurer: string | null;
+  premium: string | number | null;
+  valid_from: string | null;
+  valid_to: string | null;
+  deductible: string | number | null;
+  coverage: string[] | string | null;
 };
 
 type ExtractedValue = string | number | boolean | null | undefined;
@@ -19,11 +24,11 @@ type ExtractedData = {
   end_date?: string;
   deductible?: string | number;
   scope?: string;
-  [key: string]: ExtractedValue; // pozwala backendowi zwrócić inne pola
+  [key: string]: ExtractedValue;
 };
 
 export default function PolisyPage() {
-  const { token, isAuthed } = useAuth(); // token z AuthProvider
+  const { token, isAuthed } = useAuth();
 
   // --- stan dla listy polis ---
   const [polisy, setPolisy] = useState<Polisa[]>([]);
@@ -33,7 +38,7 @@ export default function PolisyPage() {
   const [file, setFile] = useState<File | null>(null);
   const [uploadLoading, setUploadLoading] = useState(false);
   const [ocrText, setOcrText] = useState<string>("");
-  const [extracted, setExtracted] = useState<ExtractedData  | null>(null);
+  const [extracted, setExtracted] = useState<ExtractedData | null>(null);
 
   // ===========================
   //  POBIERANIE POLIS Z BACKENDU
@@ -53,7 +58,7 @@ export default function PolisyPage() {
       const res = await fetch("https://api.autoguardian.pl/pobierz-polisy", {
         method: "GET",
         headers: {
-          ...authHeaders(authToken), // Authorization: Bearer <token>
+          ...authHeaders(authToken),
         },
       });
 
@@ -89,7 +94,7 @@ export default function PolisyPage() {
   }, [token]);
 
   // ===========================
-  //  UPLOAD PDF + OCR
+  //  UPLOAD PDF + OCR + ZAPIS
   // ===========================
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0] ?? null;
@@ -118,7 +123,6 @@ export default function PolisyPage() {
       const ocrRes = await fetch("https://api.autoguardian.pl/upload-pdf", {
         method: "POST",
         headers: {
-          // NIE ustawiamy tutaj Content-Type – przeglądarka doda boundary
           ...authHeaders(token),
         },
         body: formData,
@@ -140,7 +144,6 @@ export default function PolisyPage() {
         return;
       }
 
-      // Ustawiamy podgląd OCR w UI
       const extractedData: ExtractedData | null =
         (ocrData.extracted as ExtractedData) || null;
 
@@ -161,7 +164,6 @@ export default function PolisyPage() {
           "Content-Type": "application/json",
           ...authHeaders(token),
         },
-        // dokładnie tak, jak miałeś w starym upload.js
         body: JSON.stringify({ data: extractedData }),
       });
 
@@ -181,15 +183,12 @@ export default function PolisyPage() {
         return;
       }
 
-      // 3) Sukces – czyścimy formularz i odświeżamy listę
       alert("Polisa została zapisana w bazie.");
 
       setFile(null);
-      // jeśli chcesz zostawiać podgląd po zapisie – zakomentuj dwie linie poniżej
       setOcrText("");
       setExtracted(null);
 
-      // odśwież listę polis na dole
       await fetchPolisy(token);
     } catch (error) {
       console.error("Błąd podczas uploadu PDF / zapisu polisy:", error);
@@ -205,8 +204,8 @@ export default function PolisyPage() {
       <section className="p-4 rounded-lg bg-slate-900/50 border border-slate-700">
         <h1 className="text-2xl font-bold mb-2">Dodaj polisę</h1>
         <p className="text-sm text-slate-300 mb-4">
-          Możesz dodać nową polisę z pliku PDF (OCR). Najpierw przetworzymy plik,
-          pokażemy wynik OCR i wyodrębnione dane, a w kolejnym kroku zapiszemy polisę do bazy.
+          Możesz dodać nową polisę z pliku PDF (OCR). Po przetworzeniu pliku
+          zapisujemy polisę w bazie i odświeżamy listę poniżej.
         </p>
 
         {!isAuthed ? (
@@ -234,7 +233,9 @@ export default function PolisyPage() {
             {/* Podgląd wyodrębnionych danych */}
             {extracted && (
               <div className="mt-4 text-sm bg-slate-800 rounded p-3 max-h-64 overflow-auto">
-                <h2 className="font-semibold mb-2">Podgląd danych z PDF (extracted):</h2>
+                <h2 className="font-semibold mb-2">
+                  Podgląd danych z PDF (extracted):
+                </h2>
                 <pre className="whitespace-pre-wrap break-words">
                   {JSON.stringify(extracted, null, 2)}
                 </pre>
@@ -245,7 +246,9 @@ export default function PolisyPage() {
             {ocrText && (
               <div className="mt-4 text-xs bg-slate-800 rounded p-3 max-h-64 overflow-auto">
                 <h2 className="font-semibold mb-2">Wynik OCR (raw):</h2>
-                <pre className="whitespace-pre-wrap break-words">{ocrText}</pre>
+                <pre className="whitespace-pre-wrap break-words">
+                  {ocrText}
+                </pre>
               </div>
             )}
           </>
@@ -253,8 +256,8 @@ export default function PolisyPage() {
 
         <div className="mt-4 text-xs text-slate-400">
           <p>
-            W następnym kroku podepniemy automatyczny zapis polisy do bazy na podstawie
-            wyodrębnionych danych.
+            Dane z OCR możesz później wykorzystać do porównań polis i
+            przypomnień o końcu okresu ubezpieczenia.
           </p>
         </div>
       </section>
@@ -263,8 +266,8 @@ export default function PolisyPage() {
       <section className="p-4 rounded-lg bg-slate-900/50 border border-slate-700">
         <h2 className="text-xl font-bold mb-2">Twoje polisy</h2>
         <p className="text-sm text-slate-300 mb-4">
-          Lista polis pobrana z backendu. Na razie pokazujemy podstawowe dane;
-          później rozbudujemy widok o szczegóły polisy.
+          Lista polis pobrana z backendu. Wyświetlamy podstawowe informacje;
+          później rozbudujemy widok o szczegóły i status wygasania.
         </p>
 
         {!isAuthed ? (
@@ -280,23 +283,59 @@ export default function PolisyPage() {
             Brak zapisanych polis w bazie.
           </div>
         ) : (
-          <ul className="space-y-2 text-sm">
-            {polisy.map((p) => (
-              <li
-                key={p.id}
-                className="p-3 rounded bg-slate-800 flex flex-col sm:flex-row sm:items-center sm:justify-between"
-              >
-                <div>
-                  <span className="font-semibold">ID polisy:</span> {p.id}
-                </div>
-                <div className="text-xs text-slate-300 mt-1 sm:mt-0">
-                  Utworzono:{" "}
-                  {p.created_at
-                    ? new Date(p.created_at).toLocaleString("pl-PL")
-                    : "-"}
-                </div>
-              </li>
-            ))}
+          <ul className="space-y-3 text-sm">
+            {polisy.map((p) => {
+              const coverageLabel = Array.isArray(p.coverage)
+                ? p.coverage.join(", ")
+                : p.coverage || "brak danych";
+
+              return (
+                <li
+                  key={p.id}
+                  className="p-4 rounded bg-slate-800 border border-slate-700 flex flex-col gap-1"
+                >
+                  <div className="font-semibold text-base">
+                    {p.number || "(brak numeru polisy)"}{" "}
+                    <span className="text-xs text-slate-400 ml-2">
+                      ID: {p.id}
+                    </span>
+                  </div>
+
+                  <div className="text-slate-200">
+                    Ubezpieczyciel:{" "}
+                    <span className="font-medium">
+                      {p.insurer || "brak danych"}
+                    </span>
+                  </div>
+
+                  <div className="text-slate-200">
+                    Składka:{" "}
+                    <span className="font-medium">
+                      {p.premium != null ? `${p.premium} zł` : "brak danych"}
+                    </span>
+                  </div>
+
+                  <div className="text-slate-200 text-sm">
+                    Okres:{" "}
+                    <span className="font-medium">
+                      {p.valid_from || "?"} {" → "} {p.valid_to || "?"}
+                    </span>
+                  </div>
+
+                  <div className="text-slate-200 text-sm">
+                    Udział własny:{" "}
+                    <span className="font-medium">
+                      {p.deductible != null ? p.deductible : "brak danych"}
+                    </span>
+                  </div>
+
+                  <div className="text-slate-200 text-sm">
+                    Zakres:{" "}
+                    <span className="font-medium">{coverageLabel}</span>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>
