@@ -114,7 +114,8 @@ export default function PolisyPage() {
       const formData = new FormData();
       formData.append("file", file);
 
-      const res = await fetch("https://api.autoguardian.pl/upload-pdf", {
+      // 1) OCR – wysyłamy PDF na backend
+      const ocrRes = await fetch("https://api.autoguardian.pl/upload-pdf", {
         method: "POST",
         headers: {
           // NIE ustawiamy tutaj Content-Type – przeglądarka doda boundary
@@ -123,28 +124,76 @@ export default function PolisyPage() {
         body: formData,
       });
 
-      const data = await res.json();
+      const ocrData = await ocrRes.json();
 
-      if (res.status === 401) {
+      if (ocrRes.status === 401) {
         alert("Sesja wygasła lub brak autoryzacji. Zaloguj się ponownie.");
         return;
       }
 
-      if (!res.ok) {
-        console.error("Błąd OCR:", data);
-        alert("Błąd podczas przetwarzania PDF: " + (data.detail || "Nieznany błąd"));
+      if (!ocrRes.ok) {
+        console.error("Błąd OCR:", ocrData);
+        alert(
+          "Błąd podczas przetwarzania PDF: " +
+            (ocrData.detail || "Nieznany błąd")
+        );
         return;
       }
 
-      // Zakładamy strukturę odpowiedzi: { ocr_text: string, extracted: {...} }
-      setOcrText(data.ocr_text || data.raw_text || "");
-      setExtracted(data.extracted as ExtractedData || null);
+      // Ustawiamy podgląd OCR w UI
+      const extractedData: ExtractedData | null =
+        (ocrData.extracted as ExtractedData) || null;
 
-      console.log("✅ Wynik OCR:", data);
-      alert("Plik został przetworzony. Sprawdź podgląd danych poniżej.");
+      setOcrText(ocrData.ocr_text || ocrData.raw_text || "");
+      setExtracted(extractedData);
+
+      console.log("✅ Wynik OCR:", ocrData);
+
+      // 2) ZAPIS POLISY – wysyłamy wyodrębnione dane do /zapisz-polise
+      if (!extractedData) {
+        alert("Brak wyodrębnionych danych z PDF – nie można zapisać polisy.");
+        return;
+      }
+
+      const saveRes = await fetch("https://api.autoguardian.pl/zapisz-polise", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...authHeaders(token),
+        },
+        // dokładnie tak, jak miałeś w starym upload.js
+        body: JSON.stringify({ data: extractedData }),
+      });
+
+      const saveData = await saveRes.json();
+
+      if (saveRes.status === 401) {
+        alert("Sesja wygasła lub brak autoryzacji przy zapisie polisy.");
+        return;
+      }
+
+      if (!saveRes.ok) {
+        console.error("Błąd zapisu polisy:", saveData);
+        alert(
+          "Błąd zapisu polisy: " +
+            (saveData.detail || "Nieznany błąd podczas zapisu")
+        );
+        return;
+      }
+
+      // 3) Sukces – czyścimy formularz i odświeżamy listę
+      alert("Polisa została zapisana w bazie.");
+
+      setFile(null);
+      // jeśli chcesz zostawiać podgląd po zapisie – zakomentuj dwie linie poniżej
+      setOcrText("");
+      setExtracted(null);
+
+      // odśwież listę polis na dole
+      await fetchPolisy(token);
     } catch (error) {
-      console.error("Błąd podczas uploadu PDF:", error);
-      alert("Nie udało się przetworzyć pliku.");
+      console.error("Błąd podczas uploadu PDF / zapisu polisy:", error);
+      alert("Nie udało się przetworzyć pliku lub zapisać polisy.");
     } finally {
       setUploadLoading(false);
     }
