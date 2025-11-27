@@ -9,6 +9,8 @@ type Polisa = {
   // później rozszerzymy o więcej pól (nr polisy, ubezpieczyciel itd.)
 };
 
+type ExtractedValue = string | number | boolean | null | undefined;
+
 type ExtractedData = {
   policy_number?: string;
   insurer?: string;
@@ -17,7 +19,7 @@ type ExtractedData = {
   end_date?: string;
   deductible?: string | number;
   scope?: string;
-  [key: string]: any; // pozwala backendowi zwrócić inne pola
+  [key: string]: ExtractedValue; // pozwala backendowi zwrócić inne pola
 };
 
 export default function PolisyPage() {
