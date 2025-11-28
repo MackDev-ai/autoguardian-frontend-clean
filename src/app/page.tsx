@@ -14,17 +14,17 @@ import {
 } from "../../lib/vehicles";
 
 import {
-  listPolicies,
-  createPolicy,
-  deletePolicy,
+  // listPolicies,
+  // createPolicy,
+  // deletePolicy,
   type Policy,
 } from "../../lib/policies";
 
 /* ==== VALIDATORS ==== */
 import {
   isValidVIN,
-  isDateRangeValid,
-  isNonNegativeNumberLike,
+  // isDateRangeValid,
+  // isNonNegativeNumberLike,
 } from "../../lib/validators";
 
 /* ==== UI (tabs) ==== */
@@ -156,27 +156,27 @@ function normalizePolicy(policy: PolicyLoose): PolicyLoose {
   };
 }
 
-function extractPolicies(payload: unknown): PolicyLoose[] {
-  if (Array.isArray(payload)) {
-    return payload.filter((item): item is PolicyLoose => typeof item === "object" && item !== null).map(normalizePolicy);
-  }
-  if (payload && typeof payload === "object") {
-    const { items } = payload as PolicyListEnvelope;
-    if (Array.isArray(items)) {
-      return items
-        .filter((item): item is PolicyLoose => typeof item === "object" && item !== null)
-        .map(normalizePolicy);
-    }
-  }
-  return [];
-}
+// function extractPolicies(payload: unknown): PolicyLoose[] {
+//   if (Array.isArray(payload)) {
+//     return payload.filter((item): item is PolicyLoose => typeof item === "object" && item !== null).map(normalizePolicy);
+//   }
+//   if (payload && typeof payload === "object") {
+//     const { items } = payload as PolicyListEnvelope;
+//     if (Array.isArray(items)) {
+//       return items
+//         .filter((item): item is PolicyLoose => typeof item === "object" && item !== null)
+//         .map(normalizePolicy);
+//     }
+//   }
+//   return [];
+// }
 
-function formatPolicyPeriod(policy: PolicyLoose): string {
-  const { from, to } = policyPeriod(policy);
-  const safeFrom = from && from.length > 0 ? from : "—";
-  const safeTo = to && to.length > 0 ? to : "—";
-  return `${safeFrom} → ${safeTo}`;
-}
+// function formatPolicyPeriod(policy: PolicyLoose): string {
+//   const { from, to } = policyPeriod(policy);
+//   const safeFrom = from && from.length > 0 ? from : "—";
+//   const safeTo = to && to.length > 0 ? to : "—";
+//   return `${safeFrom} → ${safeTo}`;
+// }
 
 export default function Page() {
   const { setToken, isAuthed } = useAuth();
@@ -516,8 +516,8 @@ function GarageSection() {
 
 /* ========================= POLISY (backend + fallback) ========================= */
 const polKey = "ag_policies";
-const getPolLocal = ():PolicyLoose[] => readLocalArray<PolicyLoose>(polKey);
-const setPolLocal = (arr:PolicyLoose[]) => localStorage.setItem(polKey, JSON.stringify(arr));
+// const getPolLocal = ():PolicyLoose[] => readLocalArray<PolicyLoose>(polKey);
+// const setPolLocal = (arr:PolicyLoose[]) => localStorage.setItem(polKey, JSON.stringify(arr));
 
 /* ========================= POLISY – LINK DO NOWEGO MODUŁU ========================= */
 function PolisySection() {
