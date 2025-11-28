@@ -27,6 +27,78 @@ type ExtractedData = {
   [key: string]: ExtractedValue;
 };
 
+type PolicyStatusType =
+  | "unknown"
+  | "not_started"
+  | "active"
+  | "expiring_soon"
+  | "expired";
+
+type PolicyStatus = {
+  type: PolicyStatusType;
+  label: string;
+  daysDiff: number | null;
+};
+
+function parseDate(dateStr: string | null): Date | null {
+  if (!dateStr) return null;
+  const d = new Date(dateStr);
+  if (Number.isNaN(d.getTime())) return null;
+  return d;
+}
+
+function getPolicyStatus(
+  valid_from: string | null,
+  valid_to: string | null
+): PolicyStatus {
+  const now = new Date();
+  const start = parseDate(valid_from);
+  const end = parseDate(valid_to);
+
+  if (!end) {
+    return {
+      type: "unknown",
+      label: "Brak danych o końcu polisy",
+      daysDiff: null,
+    };
+  }
+
+  const msDiff = end.getTime() - now.getTime();
+  const daysDiff = Math.round(msDiff / (1000 * 60 * 60 * 24));
+
+  if (daysDiff < 0) {
+    return {
+      type: "expired",
+      label: `Wygasła ${Math.abs(daysDiff)} dni temu`,
+      daysDiff,
+    };
+  }
+
+  if (start && start.getTime() > now.getTime()) {
+    const msToStart = start.getTime() - now.getTime();
+    const daysToStart = Math.round(msToStart / (1000 * 60 * 60 * 24));
+    return {
+      type: "not_started",
+      label: `Startuje za ${daysToStart} dni`,
+      daysDiff,
+    };
+  }
+
+  if (daysDiff <= 30) {
+    return {
+      type: "expiring_soon",
+      label: `Kończy się za ${daysDiff} dni`,
+      daysDiff,
+    };
+  }
+
+  return {
+    type: "active",
+    label: `Wygasa za ${daysDiff} dni`,
+    daysDiff,
+  };
+}
+
 export default function PolisyPage() {
   const { token, isAuthed } = useAuth();
 
@@ -289,15 +361,35 @@ export default function PolisyPage() {
                 ? p.coverage.join(", ")
                 : p.coverage || "brak danych";
 
+              const status = getPolicyStatus(p.valid_from, p.valid_to);
+
+              const badgeBase =
+                "inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold";
+              const badgeColor =
+                status.type === "active"
+                  ? "bg-green-600 text-white"
+                  : status.type === "expiring_soon"
+                  ? "bg-yellow-400 text-black"
+                  : status.type === "expired"
+                  ? "bg-red-600 text-white"
+                  : status.type === "not_started"
+                  ? "bg-blue-600 text-white"
+                  : "bg-slate-600 text-white";
+
               return (
                 <li
                   key={p.id}
                   className="p-4 rounded bg-slate-800 border border-slate-700 flex flex-col gap-1"
                 >
-                  <div className="font-semibold text-base">
-                    {p.number || "(brak numeru polisy)"}{" "}
-                    <span className="text-xs text-slate-400 ml-2">
-                      ID: {p.id}
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="font-semibold text-base">
+                      {p.number || "(brak numeru polisy)"}{" "}
+                      <span className="text-xs text-slate-400 ml-2">
+                        ID: {p.id}
+                      </span>
+                    </div>
+                    <span className={`${badgeBase} ${badgeColor}`}>
+                      {status.label}
                     </span>
                   </div>
 
