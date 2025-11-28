@@ -48,9 +48,9 @@ type PolicyLoose = Policy & {
   to?: ISODate;
 };
 
-interface PolicyListEnvelope {
-  items?: PolicyLoose[];
-}
+// interface PolicyListEnvelope {
+//   items?: PolicyLoose[];
+// }
 
 interface MappedPolicyPreview {
   number: string;
@@ -515,7 +515,7 @@ function GarageSection() {
 }
 
 /* ========================= POLISY (backend + fallback) ========================= */
-const polKey = "ag_policies";
+// const polKey = "ag_policies";
 // const getPolLocal = ():PolicyLoose[] => readLocalArray<PolicyLoose>(polKey);
 // const setPolLocal = (arr:PolicyLoose[]) => localStorage.setItem(polKey, JSON.stringify(arr));
 
