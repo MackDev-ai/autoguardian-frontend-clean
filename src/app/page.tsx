@@ -1,5 +1,5 @@
 "use client";
-
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useAuth, authHeaders } from "../../context/AuthProvider";
 import { ENDPOINTS, tryFetch } from "../../lib/api";
@@ -519,175 +519,33 @@ const polKey = "ag_policies";
 const getPolLocal = ():PolicyLoose[] => readLocalArray<PolicyLoose>(polKey);
 const setPolLocal = (arr:PolicyLoose[]) => localStorage.setItem(polKey, JSON.stringify(arr));
 
+/* ========================= POLISY – LINK DO NOWEGO MODUŁU ========================= */
 function PolisySection() {
-  const { token, setToken } = useAuth();
-  const [msg,setMsg]=useState("");
-  const [backendList,setBackendList]=useState<PolicyLoose[]>([]);
-  const [local,setLocal]=useState<PolicyLoose[]>(getPolLocal());
-  const [form,setForm]=useState<PolicyLoose>({});
-  const [useLocal,setUseLocal]=useState(false);
-  const [loading,setLoading]=useState(false);
-  const formPeriod = policyPeriod(form);
-
-  async function load(): Promise<void> {
-    setLoading(true); setMsg("Pobieram...");
-    const res = await listPolicies(token);
-    if (res.ok) {
-      const items = extractPolicies(res.data);
-      setBackendList(items); setUseLocal(false); setMsg("Gotowe.");
-    } else if (res.status===401) {
-      setToken(null); setUseLocal(true); setMsg("Sesja wygasła — zaloguj się ponownie. Pokazuję lokalne.");
-    } else if (backendUnavailable(res.status)) {
-      setUseLocal(true); setMsg("Brak endpointu — tryb lokalny (demo).");
-    } else {
-      setMsg("❌ " + (detailFrom(res.data) || "Błąd pobierania"));
-    }
-    setLoading(false);
-  }
-
-  async function add(): Promise<void> {
-    const { from: valid_from, to: valid_to } = formPeriod;
-
-    if (!isDateRangeValid(valid_from, valid_to)) {
-      setMsg("Zakres dat jest niepoprawny (Od musi ≤ Do)."); return;
-    }
-    if (!isNonNegativeNumberLike(form.premium)) {
-      setMsg("Składka musi być liczbą ≥ 0."); return;
-    }
-    if (!isNonNegativeNumberLike(form.deductible)) {
-      setMsg("Udział własny musi być liczbą ≥ 0."); return;
-    }
-
-    const payload: Policy = {
-      number: form.number,
-      insurer: form.insurer,
-      premium: form.premium ? Number(form.premium) : undefined,
-      valid_from: valid_from ?? undefined,
-      valid_to: valid_to ?? undefined,
-      deductible: form.deductible ? Number(form.deductible) : undefined,
-      coverage: Array.isArray(form.coverage)
-        ? form.coverage
-        : typeof form.coverage === "string"
-          ? form.coverage.split(/,|;|\n/).map(s=>s.trim()).filter(Boolean)
-          : undefined
-    };
-
-    if (useLocal) {
-      const next=[...local, { ...payload, id: String(Date.now()) }];
-      setPolLocal(next); setLocal(next); setMsg("Dodano lokalnie."); setForm({});
-      return;
-    }
-
-    setMsg("Zapisuję...");
-    const res = await createPolicy(payload, token);
-    if (res.ok) { setMsg("✅ Zapisano."); setForm({}); await load(); }
-    else if (res.status===401) { setToken(null); setMsg("Sesja wygasła — zaloguj się ponownie."); }
-    else setMsg("❌ " + (detailFrom(res.data) || "Błąd zapisu"));
-  }
-
-  async function remove(p: PolicyLoose): Promise<void> {
-    if (useLocal) {
-      const next = local.filter(x => x.id !== p.id);
-      setPolLocal(next); setLocal(next);
-      return;
-    }
-    if (!p.id) return;
-    setMsg("Usuwam...");
-    const res = await deletePolicy(String(p.id), token);
-    if (res.ok) { setMsg("Usunięto."); await load(); }
-    else if (res.status===401) { setToken(null); setMsg("Sesja wygasła — zaloguj się ponownie."); }
-    else setMsg("❌ " + (detailFrom(res.data) || "Błąd usuwania"));
-  }
-
   return (
     <section className="card">
       <h1>Polisy</h1>
-      <div className="inline">
-        <button className="btn" onClick={load}>Pobierz polisy</button>
-        <span className="muted">{msg}</span>
+      <p className="muted">
+        Moduł polis znajduje się teraz na osobnej stronie. Tam możesz:
+        dodać polisę z PDF (OCR), zapisać ją w bazie i zobaczyć listę wszystkich
+        polis wraz ze statusem ważności.
+      </p>
+
+      <div style={{ marginTop: 16 }}>
+        <Link href="/polisy">
+          <button className="btn primary">
+            Przejdź do modułu polis
+          </button>
+        </Link>
       </div>
 
-      {!useLocal && (
-        <div className="list" style={{marginTop:10}}>
-          {backendList.length===0 && <div className="muted">{loading ? "Ładowanie..." : "Brak polis w bazie"}</div>}
-          {backendList.map((p,i)=>(
-            <div key={p.id ?? i} className="item">
-              <div className="inline" style={{justifyContent:"space-between",alignItems:"center"}}>
-                <div><strong>{p.number || "Polisa"}</strong> <span className="badge">{p.insurer||"—"}</span></div>
-                <button className="btn warn" onClick={()=>remove(p)}>Usuń</button>
-              </div>
-              <div className="kv" style={{marginTop:8}}>
-                <div>Okres</div><div>{formatPolicyPeriod(p)}</div>
-                <div>Składka</div><div>{p.premium ?? "—"}</div>
-                <div>Udział własny</div><div>{p.deductible ?? "—"}</div>
-                <div>Zakres</div><div>{Array.isArray(p.coverage)? p.coverage.join(", "): (p.coverage??"—")}</div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {useLocal && (
-        <div className="card">
-          <h2>Polisy (lokalne – demo)</h2>
-          <div className="list" style={{marginTop:10}}>
-            {local.length===0 && <div className="muted">Brak lokalnych polis</div>}
-            {local.map(p=>(
-              <div key={p.id} className="item">
-                <div className="inline" style={{justifyContent:"space-between",alignItems:"center"}}>
-                  <div><strong>{p.number||"-"}</strong> <span className="badge">{p.insurer||"—"}</span></div>
-                  <button className="btn warn" onClick={()=>remove(p)}>Usuń</button>
-                </div>
-                <div className="kv" style={{marginTop:8}}>
-                  <div>Okres</div><div>{formatPolicyPeriod(p)}</div>
-                  <div>Składka</div><div>{p.premium||"—"}</div>
-                  <div>Udział własny</div><div>{p.deductible||"—"}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <div className="card">
-        <h2>Dodaj polisę</h2>
-        <div className="row three">
-          <label>Nr polisy
-            <input value={form.number||""} onChange={e=>setForm(f=>({...f,number:e.target.value}))}/>
-          </label>
-          <label>Ubezpieczyciel
-            <input value={form.insurer||""} onChange={e=>setForm(f=>({...f,insurer:e.target.value}))}/>
-          </label>
-          <label>Składka
-            <input value={String(form.premium||"")} onChange={e=>setForm(f=>({...f,premium:e.target.value}))}/>
-          </label>
-        </div>
-        <div className="row three">
-          <label>Od
-            <input
-              type="date"
-              value={formPeriod.from || ""}
-              onChange={e=>setForm(f=>({...f, valid_from:e.target.value}))}
-            />
-          </label>
-          <label>Do
-            <input
-              type="date"
-              value={formPeriod.to || ""}
-              onChange={e=>setForm(f=>({...f, valid_to:e.target.value}))}
-            />
-          </label>
-          <label>Udział własny
-            <input value={String(form.deductible||"")} onChange={e=>setForm(f=>({...f,deductible:e.target.value}))}/>
-          </label>
-        </div>
-        <div className="inline">
-          <button className="btn green" onClick={add}>Zapisz</button>
-        </div>
-      </div>
+      <p className="muted" style={{ marginTop: 12 }}>
+        Uwaga: ten ekran służy tylko jako skrót. Pełna funkcjonalność jest pod
+        adresem <code>/polisy</code>.
+      </p>
     </section>
   );
 }
+
 
 /* ========================= UPLOAD PDF ========================= */
 function UploadSection() {
