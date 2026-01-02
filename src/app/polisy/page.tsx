@@ -127,7 +127,7 @@ export default function PolisyPage() {
 
       console.log("🔑 Token w /polisy (z AuthProvider):", authToken);
 
-      const res = await fetch("https://api.autoguardian.pl/pobierz-polisy", {
+      const res = await fetch("https://api.autoguardian.pl/policies", {
         method: "GET",
         headers: {
           ...authHeaders(authToken),

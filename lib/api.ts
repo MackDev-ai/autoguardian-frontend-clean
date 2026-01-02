@@ -107,7 +107,8 @@ export const ENDPOINTS = {
   me: '/me',
   polisyList: '/pobierz-polisy',
   uploadPdf: '/upload-pdf',
-  zapiszPolise: '/zapisz-polise',
+  createPolicy: "/policies",
+  getPolicies: "/policies",
 };
 
 // Prosty check zdrowia backendu

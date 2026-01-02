@@ -1,75 +1,110 @@
-// lib/vehicles.ts (polisy)
-import { tryFetch, type TryFetchResult, ENDPOINTS } from './api';
+// src/lib/policies.ts
+import { tryFetch, type TryFetchResult } from "./api";
 
-export type ISODate = string; // np. "2025-10-22"
+export type ISODate = string; // "YYYY-MM-DD"
+export type PolicyType = "OC" | "AC" | "NNW" | "ASS";
 
-export interface Policy {
-  id?: string;
-  number?: string;
-  insurer?: string;
-  premium?: number | string;
-  valid_from?: ISODate;
-  valid_to?: ISODate;
-  deductible?: number | string;
-  coverage?: string[] | string;
+export interface PolicyOut {
+  id: number;
+  user_id: number;
+  vehicle_id: number;
+  policy_type: PolicyType;
+
+  insurer: string;
+  policy_number: string;
+
+  start_date: ISODate;
+  end_date: ISODate;
+
+  premium_total?: number | null;
+  premium_installments_json?: any | null;
+
+  coverage_json: any; // list/dict
+  deductible?: number | null;
+  exclusions: any;
+  documents: any;
+
+  raw_text?: string | null;
+
+  created_at?: string;
+  updated_at?: string;
 }
 
-export type CreatePolicyInput = Omit<Policy, 'id'>;
+export interface PolicyCreate {
+  vehicle_id: number;
+  policy_type: PolicyType;
 
-function authHeader(token?: string | null): Record<string, string> {
-  return token ? { Authorization: `Bearer ${token}` } : {};
+  insurer: string;
+  policy_number: string;
+  start_date: ISODate;
+  end_date: ISODate;
+
+  premium_total?: number | null;
+  premium_installments_json?: any | null;
+
+  coverage_json?: any; // jeśli brak -> backend domyślnie []
+  deductible?: number | null;
+
+  exclusions?: any; // jeśli brak -> backend domyślnie []
+  documents?: any;  // jeśli brak -> backend domyślnie []
+  raw_text?: string | null;
 }
+
+// auth jest po cookies (ag_token), więc to jest kluczowe:
+const withCreds = { credentials: "include" as const };
 
 /**
- * Pobierz listę polis.
+ * GET /policies
  */
-export type PolicyListResponse =
-  | Policy[]
-  | { items: Policy[] }
-  | (Record<string, unknown> & { detail?: string });
-
-export async function listPolicies(
-  token?: string | null
-): Promise<TryFetchResult<PolicyListResponse>> {
-  return tryFetch<PolicyListResponse>({
-    paths: ENDPOINTS.polisyList, // ['/pobierz-polisy', '/polisy']
-    headers: {
-      ...authHeader(token),
-    },
+export async function listPolicies(): Promise<TryFetchResult<PolicyOut[]>> {
+  return tryFetch<PolicyOut[]>({
+    paths: "/policies",
+    ...withCreds,
   });
 }
 
 /**
- * Utwórz nową polisę.
+ * POST /policies
  */
 export async function createPolicy(
-  body: CreatePolicyInput,
-  token?: string | null
-): Promise<TryFetchResult<Policy>> {
-  return tryFetch<Policy>({
-    paths: ENDPOINTS.zapiszPolise, // ['/zapisz-polise', '/polisy']
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...authHeader(token),
-    },
+  body: PolicyCreate
+): Promise<TryFetchResult<PolicyOut>> {
+  return tryFetch<PolicyOut>({
+    paths: "/policies",
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
+    ...withCreds,
   });
 }
 
 /**
- * Usuń polisę po id.
- * Zwracamy generyczny kształt, bo backend może zwrócić różne payloady.
+ * DELETE /policies/{id}
+ * (UWAGA: backend musi mieć taki endpoint; jeśli jeszcze nie masz – nie używaj)
  */
 export async function deletePolicy(
-  id: string,
-  token?: string | null
-): Promise<TryFetchResult<Record<string, unknown>>> {
-  return tryFetch<Record<string, unknown>>({
-    paths: `/polisy/${id}`,
-    method: 'DELETE',
-    headers: {
-      ...authHeader(token),
-    },
+  id: number
+): Promise<TryFetchResult<{ success?: boolean; detail?: string }>> {
+  return tryFetch<{ success?: boolean; detail?: string }>({
+    paths: `/policies/${id}`,
+    method: "DELETE",
+    ...withCreds,
   });
+}
+
+/**
+ * Helper: jeśli masz jeszcze UI na starych polach (number/valid_from/premium),
+ * to możesz tymczasowo mapować.
+ */
+export function toLegacyPolicyView(p: PolicyOut) {
+  return {
+    id: String(p.id),
+    number: p.policy_number,
+    insurer: p.insurer,
+    premium: p.premium_total,
+    valid_from: p.start_date,
+    valid_to: p.end_date,
+    deductible: p.deductible,
+    coverage: p.coverage_json,
+  };
 }
